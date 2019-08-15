@@ -1,0 +1,221 @@
+![](PICS/LOGO_PUCP.png)
+
+# ESTADISTICA PARA EL ANALISIS POLITICO II
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+<a id='beginning'></a>
+
+### INDICE
+
+
+1. [Información General](#part1) 
+2. [Sumilla](#part2) 
+3. [Aporte del curso](#part3) 
+4. [Resultados de aprendizaje del curso](#part4)  
+5. [Evaluación](#part5)
+6. [Bibliografía Básica](#part6)
+7. [Programación de Clases](#part7)
+   
+
+____
+
+<a id='part1'></a>
+
+### 1. Información General
+
+* Ciclo:**2019-I**
+* Horas: **Treinta** (30)
+* Días: Lunes, Martes y Viernes
+* Profesor:  Dr. José Manuel Magallanes, PhD ([josemanuel.magallanes@gmail.com](mailto:josemanuel.magallanes@gmail.com))
+
+ 
+____
+<a id='part2'></a>
+
+### 2. Sumilla
+
+Es un curso de carácter teórico-práctico donde el alumno aprende a aplicar técnicas descriptivas y predictivas sobre datos multivariantes de origen no experimental con un enfoque computacional. Durante el desarrollo del curso, el alumno debe perfeccionar su capacidad analítica y propósitiva, con coherencia metodológica y ética.
+
+
+
+____
+<a id='part3'></a>
+
+### 3. Aporte del curso:
+
+ 
+* Consolida su capacidad de abstracción de problemas complejos mediante el análisis de datos.
+* Perfecciona su capacidad de síntesis ante datos multivariantes produciendo reportes comprensibles ante diferentes tipos de audiencias.
+* Eleva su capacidad comparativa y métrica.
+
+
+
+
+____
+<a id='part4'></a>
+
+### 4. Resultados de aprendizaje del curso:
+
+* Sabe decidir qué técnica es más apropiada ante determinada situación de análisis.
+* Sabe organizar sus datos para facilitar el procesos de análisis y presentación.
+* Sabe crear indicadores complejos.
+* Maneja adecuadamente el R y otros programas de análisis estadístico y de organización datos.
+
+
+
+
+____
+<a id='part5'></a>
+
+
+### 5. Evaluación
+
+La evaluación se realizará de modo continuo a lo largo del curso, considerando los siguientes componentes:
+
+**5.1. PARTICIPACION ACTIVA (PA)**
+
+El alumno o grupo de alumnos deberá proponer un caso real de análisis de datos. Esto implica traer datos a la clase que puedan ser utilizados para practicar los conceptos y técnicas aprendidas en el curso.
+
+
+**5.2. REPORTE FINAL (RF)**
+
+El alumno debe preparar y entregar un reporte final que integre lo visto en el curso y cómo lo aplico a sus datos.
+
+
+**5.3. FORMULA** 
+
+Nota Final= 0.6xPA + 0.4xRF
+
+
+
+____
+<a id='part6'></a>
+
+
+### 6. Bibliografía Básica
+
+* LIBROS DE CONSULTA 
+
+Magallanes, José Manuel (2012). Tour Guiado por la Estadística Básica. Pontificia Universidad Católica del Peru.
+
+Magallanes, José Manuel (2017). Introduction to Data Science for Social and Policy Research. Cambridge University Press.
+
+Andina, Matias (2018). Introducción a estadística con R. [https://bookdown.org/matiasandina/R-intro/](https://bookdown.org/matiasandina/R-intro/)
+
+
+____
+<a id='part7'></a>
+
+### 7. Programación de Clases
+
+
+1. [Definiciones básicas e Introducción al Programa R](https://htmlpreview.github.io/?https://github.com/CoursesAndTutorials/Estadistica/blob/master/sesion1.html)
+
+  * Definiciónes basicas. Estadistica y Toma de Decisiones. Escalas de Medición. Exploración de Datos. Modelos Estadisticos. Preparación de reportes.
+  * Presentación del Programa R. 
+  * Uso de repositorios en la nube de GoogleDrive. 
+  * Uso de RStudio Cloud. Creación y Publicación de Notebooks
+      
+2. [Tabulación de la Información](https://htmlpreview.github.io/?https://github.com/CoursesAndTutorials/Estadistica/blob/master/sesion2_tabulacion.html)
+
+* Caso Variables Categóricas Nominales
+  - Frecuencia Absoluta
+  - Frecuencia Relativa
+  
+* Caso Variables Categóricas Ordinales
+  - Frecuencia Absoluta
+  - Frecuencia Relativa
+  - Frecuencia Acumulada (absoluta y relativa)
+
+* Caso Variables Numéricas
+  - Creación de Intervalos
+  - Frecuencia Absoluta
+  - Frecuencia Relativa
+  - Frecuencia Acumulada (absoluta y relativa)
+
+3. [Representación Gráfica de la Información](https://htmlpreview.github.io/?https://github.com/CoursesAndTutorials/Estadistica/blob/master/sesion3_Graficas.html)
+
+* Caso Categórico Nominal y Ordinal
+  - Barras
+  - Puntos
+  - Por que no usar Graficos de Pie.
+  
+* Caso Numérico
+  - Histograma y Poligono de Frecuencias
+  - Boxplot
+
+
+4. Medidas de Centralidad
+
+* Variable Categórica Nominal
+  - Moda
+  
+* Variable Categórica Ordinal
+  - Moda
+  - Mediana
+  
+* Variable Categórica Numérica
+  - Moda (en tabla de frecuencias)
+  - Mediana
+  - Media (simple, geométrica, armónica y cuadrática)
+
+  
+
+5. Medidas de Posición 
+
+* Percentiles
+* Cuartiles
+* Deciles
+
+
+
+6. Medidas de Dispersión para Variables Categóricas
+
+* Variable Categórica Nominal 
+
+  - Indice de Herfindahl
+  - Indice de Laakso Taagepera
+
+* Variable Categórica Ordinal
+
+  - Indice de Herfindahl
+  - Indice de Laakso Taagepera
+  - Distancia Intercuartil
+  - Rango
+
+7. Medidas de Dispersión para Variables Numéricas
+
+* Indice de Herfindahl
+* Indice de Laakso Taagepera
+* Distancia Intercuartil
+* Rango
+* Varianza y Desviación Típica
+* Coeficiente de Variación de Pearson
+
+
+8. Medidas de Asimetría
+
+* Asimetría en Variables Ordinales
+* Asimetría en Variables Numéricas
+
+9. Medidas de Asociación Numérica
+
+* Análisis de Correlación
+* Análisis de Regresión Simple
+* Probabilidad y Significancia para prueba de hipótesis
+
+10. Medidas de Asociación Categórica
+
+* Construcción de Tablas de Contingencia
+* Análisis de Tablas de Contingencia
+* Probabilidad y Significancia para prueba de hipótesis (Chi Cuadrado)
+
+
+
+
+[INICIO](#beginning)
