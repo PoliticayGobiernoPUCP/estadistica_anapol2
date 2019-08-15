@@ -50,11 +50,14 @@ Para verificar qué tenemos, podemos ver la ventana *Environment*, o pedir un re
 dim(dataStata) #filas, columnas
 ```
 
-La librería permite con el mismo comando **import()** abrir otros tipos de archivos.
+
+Toda data debe tener una guía metodologica o una descripción de las columnas (_metadata_) en su web original. Es bueno copiar y mantener una copia de esos materiales en tu proyecto. 
+
+La librería **rio** es muy versatil, y permite con el mismo comando **import()** abrir otros tipos de archivos, como veremos a continuación.
 
 * Leyendo SPSS:
 
-El mismo archivo, pero en SPSS:
+Abramos el mismo archivo de LAPOP, pero en SPSS:
 
 ```{r, eval=FALSE}
 lkSAV="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/lapop2012.sav"
@@ -111,7 +114,15 @@ Podemos muchas veces usar los formularios de Google Docs para recoger informaci�
 
 ## Uso de los APIs
 
-Hay organizaciones que tiene una política de datos abiertos, por lo que ofrecen mecamismos para que se pueda acceder a sus datos. Los formatos son por lo general  XML o JSON. Traigamos la data producida por el servicio '9-1-1' de la Policia de Seattle, Washington:
+Hay organizaciones que tiene una política de datos abiertos, por lo que ofrecen un portal ad-hoc para que se pueda acceder a sus datos. La data es recogida, por lo general, en formato  XML o JSON. 
+
+Los API permiten construir pedidos de datos a través de una dirección web. Para que el trabajo de colección de datos sea exitoso, necesitamos revisar la documentación del API.
+
+Por ejemplo, la Municipalidad de San Isidro tiene un [portal de datos abiertos](http://datosabiertos.msi.gob.pe/home). En este caso accederemos a los datos de Seguridad Ciudadana, siguiendo el [link](http://datosabiertos.msi.gob.pe/dashboards/9238/seguridad-ciudadana-y-fiscalizacion/) ofrecido en el portal. Cuando se accede, se ven dos tablas de datos; si selecciona *intervenciones de serenazgo* verá sólo esa tabla.
+
+A la izquierda hay unos íconos:
+
+Traigamos la data producida por el servicio '9-1-1' de la Policia de Seattle, Washington:
 ```{r, eval=FALSE}
 
 key='e309f64f37e50c0893da23a36d9165f0fd182e39&from=01/01/2016'
