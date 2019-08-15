@@ -1,4 +1,4 @@
-<<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
 
 <center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
 
@@ -46,7 +46,7 @@ dataStata=import(lkDTA)
 
 Para verificar qué tenemos, podemos ver la ventana *Environment*, o pedir un reporte sencillo:
 
-```{r}
+```{r, eval=FALSE}
 dim(dataStata) #filas, columnas
 ```
 
@@ -65,7 +65,7 @@ dataSpss=import(lkSAV)
 ```
 
 Verificando:
-```{r}
+```{r, eval=FALSE}
 dim(dataSpss) #filas, columnas
 ```
 
@@ -80,7 +80,7 @@ dataExcel=import(lkXLSX)
 
 Verificando:
 
-```{r}
+```{r, eval=FALSE}
 dim(dataExcel) #filas, columnas
 ```
 
@@ -96,14 +96,33 @@ dataCSV=import(lkCSV)
 
 Verificando:
 
-```{r}
+```{r, eval=FALSE}
 dim(dataCSV) #filas, columnas
 ```
 
 * Archivos de GoogleDoc
 
-Podemos muchas veces usar los formularios de Google Docs para recoger información. Estos formularios dejan la información en una hoja de calculo de google (GoogleSheet). Si Ud publica esa data como archiivo tipo CSV, use el comando anterior.
+Podemos muchas veces usar los formularios de Google Docs para recoger información. Estos formularios dejan la información en una hoja de calculo de google (GoogleSheet). Si Ud publica esa data como archivo tipo CSV, use el comando anterior.
 
+**EJERCICIO**. Cree un cuestionario usando GoogleForms y descargue las respuestas en R.
+
+* Archivos de Datos Espaciales
+
+En este [link](https://app.box.com/s/mdcqfue3u0wis0b3v4gy0kwcjv4e0amu) encontrarás una carpeta comprimida. Al descomprimirla, encontraras varios _tipos_ de archivos con el mismo _nombre_. Eso constituye un mapa en formato **SHAPEFILE**. Es dificil que R lea este mapa, por lo que debes convertirlo a formato **topojson**. 
+
+**EJERCICIO**. Cambie el mapa a formato **JSON**. Para ello vaya al [mapshaper](https://mapshaper.org/); desde ahí, suba los archivos de la carpeta, simplifiquelo, y luego exportelo como _topojson_. Luego, suba el archivo _topojson_ a Github; guarde el link de descarga del archivo subido; y abralo en R así:
+
+```{r, eval=FALSE}
+# instalar:
+library(sp)
+library(geojsonio)
+library(rgdal)
+
+fromGit="XXXXX" # link desde github
+
+wazipMap <- rgdal::readOGR(fromGit,stringsAsFactors = FALSE)
+plot(wazipMap)
+```
 
 [al INICIO](#beginning)
 
@@ -120,22 +139,88 @@ Los API permiten construir pedidos de datos a través de una dirección web. Par
 
 Por ejemplo, la Municipalidad de San Isidro tiene un [portal de datos abiertos](http://datosabiertos.msi.gob.pe/home). En este caso accederemos a los datos de Seguridad Ciudadana, siguiendo el [link](http://datosabiertos.msi.gob.pe/dashboards/9238/seguridad-ciudadana-y-fiscalizacion/) ofrecido en el portal. Cuando se accede, se ven dos tablas de datos; si selecciona *intervenciones de serenazgo* verá sólo esa tabla.
 
-A la izquierda hay unos íconos:
+A la izquierda hay unos íconos, si presiona el que tiene apariencia de un 'engranaje', verá lo siguiente:
 
-Traigamos la data producida por el servicio '9-1-1' de la Policia de Seattle, Washington:
+<img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/API_msi.png" width="500">
+
+Lo primero que te sugiere el API es que obtengas tu **llave** (API_KEY). Consigue una y guardala como objeto:
 ```{r, eval=FALSE}
-
-key='e309f64f37e50c0893da23a36d9165f0fd182e39&from=01/01/2016'
-
-#install.packages("jsonlite")
-library(jsonlite) 
-base="http://api.datosabiertos.msi.gob.pe/api/v2/datastreams/INTER-DE-SEREN-2019/data.pjson/?auth_key=" 
-endPoint=paste0(base,key)
-data911 = fromJSON(endPoint)
-as.data.frame(data911$result)
+miLLAVE='e309f64f37e50c0893da23a36d9165f0fd182e39'
 ```
 
-[Go to page beginning](#beginning)
+Luego, te indica que construyas una solicitud para colectar los datos que están en la _vista de datos_ actual (GUID), incluyendo el formato:
+
+```{r, eval=FALSE}
+GUID='http://api.datosabiertos.msi.gob.pe/api/v2/datastreams/INTER-DE-SEREN-2019/'
+FORMATO='data.json/'
+```
+
+Entonces, tu solicitud se arma así:
+```{r, eval=FALSE}
+request=paste0(GUID,FORMATO,'?auth_key=',miLLAVE)
+
+#mirala
+request
+```
+
+
+R necesita que instales **jsonlite** para poder interpretar formato JSON; luego de hacerlo, habilitala
+```{r, eval=FALSE}
+library(jsonlite) 
+```
+
+De aquí, ya podrias colectar la data:
+
+```{r, eval=FALSE}
+serenosSI = fromJSON(request)
+
+#miralo
+serenosSI
+```
+
+Este pedido no se parece a lo que necesitas. No es que hayas fracasado, sino que debiste estudiar la documentación del API, disponible [aquí](https://junar.github.io/docs/es/). Luego de leerla, sabrías que era mejor pedir otro formato para la **[vista](https://junar.github.io/docs/es/_sections/04-vistas.html)** de datos, el PJSON:
+```{r, eval=FALSE}
+FORMATO='data.pjson/'
+request2=paste0(GUID,FORMATO,'?auth_key=',miLLAVE)
+```
+
+Usemos la nueva solicitud:
+```{r, eval=FALSE}
+serenosSI = fromJSON(request2)
+```
+
+Veamos su estructura:
+
+```{r, eval=FALSE}
+str(serenosSI)
+```
+
+Para acceder a los datos en formato tabla de esa solicitud, debemos acceder al elemento **result**:
+
+```{r, eval=FALSE}
+head(serenosSI$result)
+```
+
+Lo que hemos recolectado son:
+```{r, eval=FALSE}
+dim(serenosSI$result)
+```
+
+Será es la cantidad total de intervenciones? Si seguimos leyendo la documentación, aprenderemos que hay varios [parametros](https://junar.github.io/docs/es/_sections/07-estadisticas.html#) disponibles para mejorar la busqueda:
+
+```{r, eval=FALSE}
+Parametros='&from=01/01/2010'
+request3=paste0(GUID,FORMATO,'?auth_key=',miLLAVE,Parametros)
+serenosSI_all = fromJSON(request3)$result
+```
+
+Aquí confirmamos lo que hay disponible en total:
+```{r, eval=FALSE}
+dim(serenosSI_all)
+```
+
+
+[al INICIO](#beginning)
 
 ----
 
