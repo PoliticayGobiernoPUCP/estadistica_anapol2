@@ -1,5 +1,5 @@
-rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config --global user.email "jmagallanes@pucp.edu.pe"
-rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config --global user.name"MAGALLANESJoseManuel"
-rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config remote.origin.url"git@github.com:PoliticayGobiernoPUCP/estadistica_anapol2.git"
+rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config user.email "jmagallanes@pucp.edu.pe"
+rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config user.name "MAGALLANESJoseManuel"
+rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$ git config remote.origin.url "git@github.com:PoliticayGobiernoPUCP/estadistica_anapol2.git"
 rstudio-user@application-1089111-deployment-3527127-hkqvp:/cloud/project$
 
