@@ -16,7 +16,7 @@
 
 
 ### Unidad 1: Colección y pre procesamiento de Datos
-* [Carga de datos desde la nube]((https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/ColeccionDeData.html))
+* [Carga de datos desde la nube](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/ColeccionDeData.html)
 * Pre procesamiento de datos
 * Preparación de tablas de datos
 
