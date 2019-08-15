@@ -1,0 +1,235 @@
+<<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Leyendo Data desde R</h2>  </header></center>
+____
+
+<a id='beginning'></a>
+
+El primer paso para realizar cualquier tipo de análisis es tener los datos. Esto condiciona además el diseño de la investigación. Revisaremos los siguientes casos:
+
+1. [Propietary software.](#part1) 
+2. [Recolección Ad-hoc.](#part2) 
+3. [Uso de APIs.](#part3) 
+4. ['Scraping' tablas de datos.](#part4) 
+5. [Leyendo datos espaciales.](#part5) 
+
+Los datos pueden estar en algun lugar de la web; si crees que esos datos permanecerán en ese sitio, quizás puedas sólo utilizar su link de descarga y leerlos directamente. Lo más seguro, en todo caso, es usarlos de esa manera y luego guardar esa data en tu **repositorio** del proyecto (en la 'nube'). Esto facilitará su lectura y **replicabilidad**. 
+
+Si por alguna razón deseas leerlos desde tu computadora, debes tener los archivos en la misma carpeta de tu R Notebook.
+
+
+____
+
+
+<a id='part1'></a>
+
+## Data de 'proprietary software'
+
+*Leyendo SPSS:
+
+Abramos este archivo desde el _American National Election Studies Survey_ (ANES):
+```{r, eval=FALSE}
+#install 'haven' first! (se toma su tiempo!)
+library(haven)
+folder="data"
+fileName="anes_timeseries_2012.sav"
+fileToRead=file.path(folder,fileName)
+dataSpss=read_sav(fileToRead)
+```
+En **dataSpss** está un gran archivo. Además no es aun una tabla de datos (dataframe). Creemos un dataframe con dos variables ("libcpre_self","libcpo_self"), un par de preguntas  pre y post eleccions donde se solicita ubicarse en algun valor de 7 puntos, cuyos extremos son ‘extremely liberal’ y ‘extremely conservative’: 
+```{r, eval=FALSE}
+varsOfInterest=c("libcpre_self","libcpo_self")
+dataSpssSub=as.data.frame(dataSpss)[varsOfInterest]
+head(dataSpssSub)
+```
+
+El archivo anterior en formato STATA:
+```{r, eval=FALSE}
+fileName="anes_timeseries_2012.dta"
+fileToRead=file.path(folder,fileName)
+dataStata=read_dta(fileToRead)
+dataStataSub=as.data.frame(dataStata)[varsOfInterest]
+head(dataStataSub)
+```
+
+Otro formato propietario de mucho uso es el de las hojas de cálculo en Excel:
+```{r, eval=FALSE}
+library(readxl)
+fileName='idhPeru.xlsx'
+fileToRead=file.path(folder,fileName)
+dataExcel=read_excel(fileToRead)
+head(dataExcel)
+```
+
+Al ejecutar el comando anterior, verás que la data se crga pero necesita algo de organización (así la prepara Nacionaes Unidas...ni modo).
+
+
+
+[Go to page beginning](#beginning)
+
+----
+
+<a id='part2'></a>
+
+## Recolección ad-hoc
+
+Podemos muchas veces usar los formularios de Google Docs para recoger información. Por ejemplo,  visite este [link](https://goo.gl/forms/Xw0um8hidWwbEPcF2). 
+
+Luego, hay que producir un URL para la data creada.
+
+```{r, eval=FALSE}
+
+require(RCurl)
+# obtained from google docs:
+link='https://docs.google.com/spreadsheets/d/1bDMM5s3PDC5awrSkILFRPJMlQ0j95TtVxErvvNNOHPU/pub?output=csv'
+
+# getting info
+myCsv <- getURL(link)
+# to change column names:
+namesOfCols=c('timeStamp','nombre','apellido','tipoCole', 'lugarNace','edad','sexo', 'religion')
+
+# parsing as csv
+myData=read.csv(textConnection(myCsv),col.names=namesOfCols)
+
+head(myData)
+
+```
+
+[Go to page beginning](#beginning)
+
+-----
+
+<a id='part3'></a>
+
+## Uso de los APIs
+
+Hay organizaciones que tiene una política de datos abiertos, por lo que ofrecen mecamismos para que se pueda acceder a sus datos. Los formatos son por lo general  XML o JSON. Traigamos la data producida por el servicio '9-1-1' de la Policia de Seattle, Washington:
+```{r, eval=FALSE}
+#install.packages("jsonlite")
+library(jsonlite) 
+endPoint="https://data.seattle.gov/resource/pu5n-trf4.json" 
+data911 = fromJSON(endPoint)
+head(data911)
+```
+
+[Go to page beginning](#beginning)
+
+----
+
+
+<a id='part4'></a>
+
+
+##‘Scraping’ tablas de datos
+
+Aqui descargaremos los datos de esta [wikipage](https://en.wikipedia.org/wiki/List_of_freedom_indices)
+
+```{r, eval=FALSE}
+# Install: XML, RCurl
+# Activate
+library(XML)
+library(RCurl)
+
+# URL
+wiki="https://en.wikipedia.org/wiki/" 
+link = "List_of_freedom_indices" 
+
+# Data
+wikiLinkContents = getURL(paste0(wiki,link)) 
+wikiTables = readHTMLTable(wikiLinkContents,
+                           stringsAsFactors=FALSE)
+```
+
+Vemos que tenemos:
+    
+```{r, eval=FALSE}
+#data frame:
+is.data.frame(wikiTables)
+#list:
+is.list(wikiTables)
+# how many?
+length(wikiTables)
+```
+
+Al visitar la web, nos damos cuenta la tabla de interés es la segunda:
+```{r, eval=FALSE}
+idx=wikiTables[[2]]
+str(idx)
+```
+  
+Una breve mirada:
+```{r, eval=FALSE}
+head(idx)
+```
+  
+[Go to page beginning](#beginning)
+
+----
+
+<a id='part5'></a>
+
+## Recolectando Datos espaciales
+
+Los datos especiales presentan una complejidad diferente. Este tipo de datos, además de la información de la unidad de estudio, guardan información que permite visualizar lineas, puntos y poligonos.
+
+El formato RDS de R puede almacenar este tipo de información. Por ejemplo, si visitas la pagina web del [GADM database of Global Administrative Areas](http://www.gadm.org/country) puedes descargar mapas por país a diversos niveles subnacionales. Si visitas el link y buscas Perú puedes hacer:
+
+```{r, eval=FALSE}
+library(sp) 
+PeruRegs <- readRDS(gzcon(url("http://biogeo.ucdavis.edu/data/gadm2.8/rds/PER_adm1.rds")))
+```
+
+PeruRegs ya tiene la información. Si solo quieres ver los datos de cada unidad debes hacer:
+
+```{r, eval=FALSE}
+PeruRegs@data
+```
+Aqui grafico:
+```{r, eval=FALSE}
+plot(PeruRegs)
+```
+
+Un formato más común son los mapas en SHAPEFILE. Hay un directorio dentro del folder _data_ donde estan varios mapas de limites administrativos del Perú:
+```{r, eval=FALSE}
+folderMap='PER_adm_shp'
+fileName='PER_adm1.shp' # nivel 1 son regiones
+fileToRead=file.path(folder,folderMap,fileName)
+
+library(maptools)
+library(rgeos)
+PeruRegs_shp=readShapePoly(fileToRead)
+```
+
+*PeruRegs_shp* tiene el mapa, pero salió un _warning_ que podemos obviar. El gráfico aún funciona:
+```{r, eval=FALSE}
+plot(PeruRegs_shp)
+```
+
+Si hacemos caso al _warning_ anterior: 
+```{r, eval=FALSE}
+library(rgdal)
+library(sf)
+PeruRegs_shp <- rgdal::readOGR(fileToRead)
+
+```
+
+Sin problema, el mapa se dibujará.
+```{r, eval=FALSE}
+plot(PeruRegs_shp)
+```
+
+_____
+<br></br>
+
+####[VOLVER AL SILABO](https://politicaygobiernopucp.github.io/EstadisticaPoliticaGobiernoII/)
