@@ -21,7 +21,6 @@ El primer paso para realizar cualquier tipo de análisis es tener los datos. Est
 1. [Propietary software.](#part1) 
 2. [Uso de APIs.](#part3) 
 3. ['Scraping' tablas de datos.](#part4) 
-4. [Leyendo datos espaciales.](#part5) 
 
 Los datos pueden estar en algun lugar de la web; si crees que esos datos permanecerán en ese sitio, quizás puedas sólo utilizar su link de descarga y leerlos directamente. Lo más seguro, en todo caso, es usarlos de esa manera y luego guardar esa data en tu **repositorio** del proyecto (en la 'nube'). Esto facilitará su lectura y **replicabilidad**. 
 
@@ -219,6 +218,7 @@ Aquí confirmamos lo que hay disponible en total:
 dim(serenosSI_all)
 ```
 
+**Ejercicio**. Traer los datos de los últimos 15 días.
 
 [al INICIO](#beginning)
 
@@ -230,103 +230,55 @@ dim(serenosSI_all)
 
 ##‘Scraping’ tablas de datos
 
-Aqui descargaremos los datos de esta [wikipage](https://en.wikipedia.org/wiki/List_of_freedom_indices)
+Las tablas de datos en la web pueden ser descargadas con facilidad, si se consigue identificar la ruta hacia ella. Cuando identifiques una tabla que te interesa, usa el botón derecho de tu mouse para inspeccionar el código de la página web. Usa la opción inspección hasta que **resalte toda** la tabla.
+
+Por ejemplo, visita este [link](https://www.nationsonline.org/oneworld/corruption.htm). Estando en esa página usando **GoogleChrome** ubicate en la tabla e inspecciona usando el boton derecho:
+
+<img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/scrap1.png" width="700">
+
+Debes seguir _inspeccionando_ hasta que se resalte tu tabla:
+
+<img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/scrap2.png" width="700">
+
+Nota que en este caso tienes varias tablas, debes ser muy preciso en tu selección. Una vez haya identificado bien tu tabla, usa nuevamente el boton derecho sobre el código en _html_ y copia el **XPATH**. Nota que a veces es más util copiar el XPATH del cuerpo de la tabla (**body**), en vez que la tabla.
+
+<img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/scrap3.png" width="700">
+
+Hasta aqui tienes:
 
 ```{r, eval=FALSE}
-# Install: XML, RCurl
-# Activate
-library(XML)
-library(RCurl)
-
-# URL
-wiki="https://en.wikipedia.org/wiki/" 
-link = "List_of_freedom_indices" 
-
-# Data
-wikiLinkContents = getURL(paste0(wiki,link)) 
-wikiTables = readHTMLTable(wikiLinkContents,
-                           stringsAsFactors=FALSE)
+linkPage="https://www.nationsonline.org/oneworld/corruption.htm" 
+linkPath = "/html/body/table[3]" 
 ```
 
-Vemos que tenemos:
-    
-```{r, eval=FALSE}
-#data frame:
-is.data.frame(wikiTables)
-#list:
-is.list(wikiTables)
-# how many?
-length(wikiTables)
-```
-
-Al visitar la web, nos damos cuenta la tabla de interés es la segunda:
-```{r, eval=FALSE}
-idx=wikiTables[[2]]
-str(idx)
-```
-  
-Una breve mirada:
-```{r, eval=FALSE}
-head(idx)
-```
-  
-[Go to page beginning](#beginning)
-
-----
-
-<a id='part5'></a>
-
-## Recolectando Datos espaciales
-
-Los datos especiales presentan una complejidad diferente. Este tipo de datos, además de la información de la unidad de estudio, guardan información que permite visualizar lineas, puntos y poligonos.
-
-El formato RDS de R puede almacenar este tipo de información. Por ejemplo, si visitas la pagina web del [GADM database of Global Administrative Areas](http://www.gadm.org/country) puedes descargar mapas por país a diversos niveles subnacionales. Si visitas el link y buscas Perú puedes hacer:
+Para traer los datos, debes instalar **htmltab**, y luego ya usar este código:
 
 ```{r, eval=FALSE}
-library(sp) 
-PeruRegs <- readRDS(gzcon(url("http://biogeo.ucdavis.edu/data/gadm2.8/rds/PER_adm1.rds")))
+library(htmltab)
+corrupcion = htmltab(doc = linkPage, 
+                     which =linkPath) 
 ```
 
-PeruRegs ya tiene la información. Si solo quieres ver los datos de cada unidad debes hacer:
+Esto es lo que tienes:
 
 ```{r, eval=FALSE}
-PeruRegs@data
+head(corrupcion)
 ```
-Aqui grafico:
+
+Nota lo que hay al final:
+
 ```{r, eval=FALSE}
-plot(PeruRegs)
+tail(corrupcion)
 ```
 
-Un formato más común son los mapas en SHAPEFILE. Hay un directorio dentro del folder _data_ donde estan varios mapas de limites administrativos del Perú:
-```{r, eval=FALSE}
-folderMap='PER_adm_shp'
-fileName='PER_adm1.shp' # nivel 1 son regiones
-fileToRead=file.path(folder,folderMap,fileName)
 
-library(maptools)
-library(rgeos)
-PeruRegs_shp=readShapePoly(fileToRead)
-```
+La data mas _sucia_ es la que se obtiene por esta vía; y tienes que evitar traer más 'suciedad' cuando puedas. Ayudará en algo usar el XPATH del **body** de la tabla?
 
-*PeruRegs_shp* tiene el mapa, pero salió un _warning_ que podemos obviar. El gráfico aún funciona:
-```{r, eval=FALSE}
-plot(PeruRegs_shp)
-```
-
-Si hacemos caso al _warning_ anterior: 
-```{r, eval=FALSE}
-library(rgdal)
-library(sf)
-PeruRegs_shp <- rgdal::readOGR(fileToRead)
-
-```
-
-Sin problema, el mapa se dibujará.
-```{r, eval=FALSE}
-plot(PeruRegs_shp)
-```
+**Ejercicio**. Traer los datos usando el XPATH del **body** de la tabla, y verificar si era una mejor alternativa o no.
 
 _____
 <br></br>
 
-####[VOLVER AL SILABO](https://politicaygobiernopucp.github.io/EstadisticaPoliticaGobiernoII/)
+[al INICIO](#beginning)
+
+####[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
