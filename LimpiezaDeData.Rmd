@@ -1,0 +1,257 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>'Limpieza' de Datos</h2>  </header></center>
+____
+
+<a id='beginning'></a>
+
+____
+
+En esta sesión veremos diversos casos de limpieza de datos, en general conoceremos diversos comandos que nos ayuden en múltiples situaciones. En particular, visitaremos la web de la [CIA](https://www.cia.gov/library/publications/resources/the-world-factbook) que tiene casos interesantes.
+
+Veamos en particular los datos sobre [nivel de urbanización](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html) en cada país:
+
+
+```{r, eval=FALSE}
+library(htmltab) 
+
+linkCIA_urb = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html"
+linkPath_urb='//*[@id="fieldListing"]'
+
+urban = htmltab(doc = linkCIA_urb, 
+                which =linkPath_urb)
+```
+
+Tenemos los datos, pero no están bien:
+```{r, eval=FALSE}
+head(urban)
+```
+
+Veamos el primer valor de la segunda columna:
+
+```{r, eval=FALSE}
+# fila 1, columna 2
+urban[1,2]
+```
+
+Aqui hay dos variables:
+
+* Población urbana
+* Tasa de urbanización
+
+El valor de cada elemento de esa columna es un texto; y del caso del ejemplo sólo queremos los porcentajes. Utilicemos esa celda y luego generalicemos.
+
+### Uso de expresiones regulares
+
+Instale y use la librería **stringr**:
+
+```{r, eval=FALSE}
+library(stringr)
+```
+
+Veamos diferentes casos:
+
+```{r, eval=FALSE}
+# me trae cada numero
+str_extract_all('25.3%,0% y 23.5% 13 34 hola',"\\d")
+```
+
+```{r, eval=FALSE}
+# me trae numeros adyacentes:
+str_extract_all('25.3%,0% y 23.5% 13 34 hola',"\\d+") # + es al menos 1 / * es 0 o más
+```
+
+
+```{r, eval=FALSE}
+# numero entero, seguido opcionalmente de punto y mas numero de una o mas cifras.
+str_extract_all('25.3%,0% y 23.5% 13 34 hola',"\\d+\\.*\\d*")
+
+```
+
+
+```{r, eval=FALSE}
+# numero entero, seguido opcionalmente de punto y mas numero de una o mas cifras y %.
+str_extract_all('25.3%,0% y 23.5% 13 34 hola', "\\d+\\.*\\d*\\%")
+```
+
+
+```{r, eval=FALSE}
+# porcentake sin el simbolo
+str_extract_all('25.3%,0% y 23.5% 13 34 hola', "(\\d+\\.?\\d?)(?=\\%)")
+```
+
+Sabiendo estas opciones, un detalle más sobre lo que tenemos:
+```{r, eval=FALSE}
+# con [[1]] recien accedemos al elemento:
+str_extract_all('25.3% y 23%', "(\\d+\\.?\\d?)(?=\\%)")[[1]]
+```
+
+```{r, eval=FALSE}
+# primer valor es
+str_extract_all('25% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][1]
+```
+
+```{r, eval=FALSE}
+# segundo valor es
+str_extract_all('25% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][2]
+```
+
+Apliquemoslo a la columna:
+
+```{r, eval=FALSE}
+str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)")
+```
+
+El usar **simplify** lo hace mas facil:
+
+```{r, eval=FALSE}
+str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)",simplify = T)
+```
+
+Entonces:
+```{r, eval=FALSE}
+EXPRESION="(\\d+\\.?\\d?)(?=\\%)"
+urban$pop_urb=str_extract_all(urban$Urbanization,pattern=EXPRESION,simplify = T)[,1]
+urban$rate_urb=str_extract_all(urban$Urbanization,pattern=EXPRESION,simplify = T)[,2]
+```
+
+
+
+Veamos:
+
+```{r, eval=FALSE}
+head(urban[,-2]) # sin mostrar la columna 'sucia'
+```
+
+### Uso de particiones
+
+Esta es otra estrategia, donde dividimos el texto. Veamos:
+```{r, eval=FALSE}
+test=urban[1,2]
+test
+```
+```{r, eval=FALSE}
+str_split(test,pattern = 'rate of urbanization:')
+```
+De aqui:
+```{r, eval=FALSE}
+urban$pop_urb2=str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,1]
+urban$rate_urb2=str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,2]
+```
+
+Recursivamente:
+
+```{r, eval=FALSE}
+urban$pop_urb2[1]
+```
+
+```{r, eval=FALSE}
+urban$pop_urb2=str_split(urban$pop_urb2,pattern = '% of total',simplify = T)[,1]
+```
+
+```{r, eval=FALSE}
+#ahora:
+urban$pop_urb2[1]
+```
+
+```{r, eval=FALSE}
+urban$pop_urb2=str_split(urban$pop_urb2,pattern = ':',simplify = T)[,2]
+```
+
+Luego:
+```{r, eval=FALSE}
+urban$pop_urb2
+```
+
+Lo mismo para:
+```{r, eval=FALSE}
+urban$rate_urb2[1]
+```
+```{r, eval=FALSE}
+urban$rate_urb2=str_split(urban$rate_urb2,pattern = '%',simplify = T)[,1]
+```
+
+Veamos:
+```{r, eval=FALSE}
+head(urban[,-2])
+```
+
+Ambos caminos funcionan bien. 
+
+### Otras funciones
+
+También es importante la función **gsub**, que busca un character y lo reemplaza:
+```{r, eval=FALSE}
+porcentajes=c('13%','33%','55%')
+gsub('%',"",porcentajes) # lo reemplaza por nada ''.
+```
+
+Una vez que la data está limpia hay que verificar el tipo de datos:
+```{r, eval=FALSE}
+str(urban)
+```
+
+Eliminemos las columnas repetidas y la original sucia:
+```{r, eval=FALSE}
+urban[,c(2,5,6)]=NULL
+```
+
+Y ahora sí llevemosla a número:
+
+```{r, eval=FALSE}
+urban[,-1]=lapply(urban[,-1], as.numeric)
+```
+
+Cuando se convierte texto a número, muchas veces se transforma un valor de celda a *perdido* (**NA**), verifiquemos donde hay filas incompletas:
+
+```{r, eval=FALSE}
+urban[!complete.cases(urban),]
+```
+
+Si vemos la tabla original en la web, no había valor en esa celda, por lo que es correcto.
+
+Otra función importante es la que elimina espacios en blanco antes y despues de texto:
+
+```{r, eval=FALSE}
+textos=c(' abc','pqr ', ' xyz ')
+trimws(textos,whitespace = "[\\h\\v]")
+```
+
+Es recomendable hacer eso con la columna de texto:
+
+```{r, eval=FALSE}
+urban$Country=trimws(urban$Country,whitespace = "[\\h\\v]")
+```
+
+
+Ahora si:
+```{r, eval=FALSE}
+str(urban)
+```
+
+
+
+**Ejecicios**: 
+
+1. Traer la tabla de este [link](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/274.html) y dejar  una tabla en R más limpia.
+
+2. Traer la tabla de este [link](https://en.wikipedia.org/wiki/Democracy_Index) y dejar  una tabla en R más limpia.
+
+
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+####[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
