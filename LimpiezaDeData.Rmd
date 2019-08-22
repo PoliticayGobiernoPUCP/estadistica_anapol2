@@ -23,7 +23,7 @@ En esta sesión veremos diversos casos de limpieza de datos, en general conocere
 Veamos en particular los datos sobre [nivel de urbanización](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html) en cada país:
 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 library(htmltab) 
 
 linkCIA_urb = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html"
@@ -34,13 +34,13 @@ urban = htmltab(doc = linkCIA_urb,
 ```
 
 Tenemos los datos, pero no están bien:
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 head(urban)
 ```
 
 Veamos el primer valor de la segunda columna:
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 # fila 1, columna 2
 urban[1,2]
 ```
@@ -87,25 +87,32 @@ str_extract_all('25.3%,0% y 23.5% 13 34 hola', "\\d+\\.*\\d*\\%")
 
 
 ```{r, eval=FALSE}
-# porcentake sin el simbolo
+# porcentaje sin el simbolo
 str_extract_all('25.3%,0% y 23.5% 13 34 hola', "(\\d+\\.?\\d?)(?=\\%)")
 ```
 
 Sabiendo estas opciones, un detalle más sobre lo que tenemos:
 ```{r, eval=FALSE}
 # con [[1]] recien accedemos al elemento:
-str_extract_all('25.3% y 23%', "(\\d+\\.?\\d?)(?=\\%)")[[1]]
+str_extract_all('25.3%, 0%y 23%', "(\\d+\\.?\\d?)(?=\\%)")[[1]]
 ```
 
 ```{r, eval=FALSE}
 # primer valor es
-str_extract_all('25% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][1]
+str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][1]
 ```
 
 ```{r, eval=FALSE}
 # segundo valor es
-str_extract_all('25% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][2]
+str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][2]
 ```
+
+
+```{r, eval=FALSE}
+# tercer valor es
+str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][3]
+```
+
 
 Apliquemoslo a la columna:
 
@@ -113,17 +120,23 @@ Apliquemoslo a la columna:
 str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)")
 ```
 
-El usar **simplify** lo hace mas facil:
+La estructura obtenida no facilitaria el trabajo de producir dos columnas. El usar **simplify** lo hace mas facil:
 
 ```{r, eval=FALSE}
 str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)",simplify = T)
 ```
 
+Esa matriz anterior me permite acceder a cada columna asi:
 Entonces:
 ```{r, eval=FALSE}
-EXPRESION="(\\d+\\.?\\d?)(?=\\%)"
-urban$pop_urb=str_extract_all(urban$Urbanization,pattern=EXPRESION,simplify = T)[,1]
-urban$rate_urb=str_extract_all(urban$Urbanization,pattern=EXPRESION,simplify = T)[,2]
+PATRON="(\\d+\\.?\\d?)(?=\\%)"
+COLSUCIA=urban$Urbanization
+
+# UNA COLUMNA
+urban$pop_urb=str_extract_all(string = COLSUCIA,pattern=PATRON,simplify = T)[,1]
+
+# OTRA COLUMNA
+urban$rate_urb=str_extract_all(string = COLSUCIA,pattern=PATRON,simplify = T)[,2]
 ```
 
 
@@ -136,28 +149,46 @@ head(urban[,-2]) # sin mostrar la columna 'sucia'
 
 ### Uso de particiones
 
-Esta es otra estrategia, donde dividimos el texto. Veamos:
+Voy a ver como usar otra estrategia para obtener lo mismo que antes, pero voy a usar particiones:
+
 ```{r, eval=FALSE}
+# recuerda:
 test=urban[1,2]
 test
 ```
+
+Aqui busco un texto que me permita dividir esa cadena de texto:
+
 ```{r, eval=FALSE}
 str_split(test,pattern = 'rate of urbanization:')
 ```
-De aqui:
+
+Veo que me queda a cada lado el valor que quiero, pero aun  "sucio". Que importa, creo las dos columnas:
+
 ```{r, eval=FALSE}
-urban$pop_urb2=str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,1]
-urban$rate_urb2=str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,2]
+urban$pop_urb2=str_split(urban$Urbanization,
+                         pattern = 'rate of urbanization:',
+                         simplify = T)[,1]
+
+urban$rate_urb2=str_split(urban$Urbanization,
+                          pattern = 'rate of urbanization:',
+                          simplify = T)[,2]
 ```
 
-Recursivamente:
+Ahora limpio la primera columna.
+
+Si una cel da es asi:
 
 ```{r, eval=FALSE}
 urban$pop_urb2[1]
 ```
 
+Puedo teneer mejor texto si la divido y me quedo con el primer elemento:
+
 ```{r, eval=FALSE}
-urban$pop_urb2=str_split(urban$pop_urb2,pattern = '% of total',simplify = T)[,1]
+urban$pop_urb2=str_split(urban$pop_urb2,
+                         pattern = '% of total',
+                         simplify = T)[,1]
 ```
 
 ```{r, eval=FALSE}
@@ -165,19 +196,25 @@ urban$pop_urb2=str_split(urban$pop_urb2,pattern = '% of total',simplify = T)[,1]
 urban$pop_urb2[1]
 ```
 
+
+Uso otro simbolo divisor y me quedo con la parte 2:
 ```{r, eval=FALSE}
 urban$pop_urb2=str_split(urban$pop_urb2,pattern = ':',simplify = T)[,2]
 ```
 
-Luego:
+Luego tengo:
 ```{r, eval=FALSE}
 urban$pop_urb2
 ```
 
-Lo mismo para:
+Si sigo la misma estrategia para la otra columna:
+
 ```{r, eval=FALSE}
 urban$rate_urb2[1]
 ```
+
+Veo que puede ser trivial:
+
 ```{r, eval=FALSE}
 urban$rate_urb2=str_split(urban$rate_urb2,pattern = '%',simplify = T)[,1]
 ```
@@ -187,7 +224,7 @@ Veamos:
 head(urban[,-2])
 ```
 
-Ambos caminos funcionan bien. 
+Ambos caminos funcionaron bien. 
 
 ### Otras funciones
 
@@ -197,23 +234,23 @@ porcentajes=c('13%','33%','55%')
 gsub('%',"",porcentajes) # lo reemplaza por nada ''.
 ```
 
-Una vez que la data está limpia hay que verificar el tipo de datos:
+Una vez que la data está limpia hay que verificar el tipo de datos con **str()**:
 ```{r, eval=FALSE}
 str(urban)
 ```
 
-Eliminemos las columnas repetidas y la original sucia:
+Eliminemos las columnas repetidas y la original sucia usando **NULL**:
 ```{r, eval=FALSE}
 urban[,c(2,5,6)]=NULL
 ```
 
-Y ahora sí llevemosla a número:
+Y ahora sí llevemosla a número, usando **lapply**que permite aplicar una funcion a varias columnas:
 
 ```{r, eval=FALSE}
 urban[,-1]=lapply(urban[,-1], as.numeric)
 ```
 
-Cuando se convierte texto a número, muchas veces se transforma un valor de celda a *perdido* (**NA**), verifiquemos donde hay filas incompletas:
+Cuando se convierte texto a número, muchas veces se transforma un valor de celda a *perdido* (**NA**), verifiquemos donde hay filas incompletas con el comando **complete.cases()**:
 
 ```{r, eval=FALSE}
 urban[!complete.cases(urban),]
@@ -221,7 +258,7 @@ urban[!complete.cases(urban),]
 
 Si vemos la tabla original en la web, no había valor en esa celda, por lo que es correcto.
 
-Otra función importante es la que elimina espacios en blanco antes y despues de texto:
+Otra función importante es **trimws()**, que  elimina espacios en blanco antes y despues de texto:
 
 ```{r, eval=FALSE}
 textos=c(' abc','pqr ', ' xyz ')
