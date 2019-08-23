@@ -389,14 +389,14 @@ ESTADISTICA PARA EL ANALISIS POLITICO II
 <center>
 <header>
 <h2>
-‘Limpieza’ de Datos
+Pre procesamiento de Datos
 </h2>
 </header>
 </center>
 <hr />
 <p><a id="beginning"></a></p>
 <hr />
-<p>En esta sesión veremos diversos casos de limpieza de datos, en general conoceremos diversos comandos que nos ayuden en múltiples situaciones. En particular, visitaremos la web de la <a href="https://www.cia.gov/library/publications/resources/the-world-factbook">CIA</a> que tiene casos interesantes.</p>
+<p>En esta sesión veremos diversos casos de pre procesamiento o ‘limpieza’ de datos; en general, conoceremos diversos comandos que nos ayuden en múltiples situaciones. En particular, visitaremos la web de la <a href="https://www.cia.gov/library/publications/resources/the-world-factbook">CIA</a> que tiene casos interesantes.</p>
 <p>Veamos en particular los datos sobre <a href="https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html">nivel de urbanización</a> en cada país:</p>
 <pre class="r"><code>library(htmltab) 
 
@@ -431,9 +431,9 @@ urban[1,2]</code></pre>
 <li>Población urbana</li>
 <li>Tasa de urbanización</li>
 </ul>
-<p>El valor de cada elemento de esa columna es un texto; y del caso del ejemplo sólo queremos los porcentajes. Utilicemos esa celda y luego generalicemos.</p>
+<p>El valor de cada elemento de esa columna es un texto; esos dos porcentajes deben a diferentes columnas. Les mostraré dos caminos.</p>
 <div id="uso-de-expresiones-regulares" class="section level3">
-<h3>Uso de expresiones regulares</h3>
+<h3>1. Uso de expresiones regulares</h3>
 <p>Instale y use la librería <strong>stringr</strong>:</p>
 <pre class="r"><code>library(stringr)</code></pre>
 <p>Veamos diferentes casos:</p>
@@ -473,7 +473,7 @@ urban$rate_urb=str_extract_all(string = COLSUCIA,pattern=PATRON,simplify = T)[,2
 <pre class="r"><code>head(urban[,-2]) # sin mostrar la columna 'sucia'</code></pre>
 </div>
 <div id="uso-de-particiones" class="section level3">
-<h3>Uso de particiones</h3>
+<h3>2. Uso de particiones</h3>
 <p>Voy a ver como usar otra estrategia para obtener lo mismo que antes, pero voy a usar particiones:</p>
 <pre class="r"><code># recuerda:
 test=urban[1,2]
@@ -510,7 +510,7 @@ urban$pop_urb2[1]</code></pre>
 <p>Ambos caminos funcionaron bien.</p>
 </div>
 <div id="otras-funciones" class="section level3">
-<h3>Otras funciones</h3>
+<h3>3. Otras funciones</h3>
 <p>También es importante la función <strong>gsub</strong>, que busca un character y lo reemplaza:</p>
 <pre class="r"><code>porcentajes=c('13%','33%','55%')
 gsub('%',&quot;&quot;,porcentajes) # lo reemplaza por nada ''.</code></pre>

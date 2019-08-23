@@ -11,14 +11,14 @@
 
 ____
 
-<center> <header><h2>'Limpieza' de Datos</h2>  </header></center>
+<center> <header><h2>Pre procesamiento de Datos</h2>  </header></center>
 ____
 
 <a id='beginning'></a>
 
 ____
 
-En esta sesión veremos diversos casos de limpieza de datos, en general conoceremos diversos comandos que nos ayuden en múltiples situaciones. En particular, visitaremos la web de la [CIA](https://www.cia.gov/library/publications/resources/the-world-factbook) que tiene casos interesantes.
+En esta sesión veremos diversos casos de pre procesamiento o 'limpieza' de datos; en general, conoceremos diversos comandos que nos ayuden en múltiples situaciones. En particular, visitaremos la web de la [CIA](https://www.cia.gov/library/publications/resources/the-world-factbook) que tiene casos interesantes.
 
 Veamos en particular los datos sobre [nivel de urbanización](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html) en cada país:
 
@@ -50,9 +50,9 @@ Aqui hay dos variables:
 * Población urbana
 * Tasa de urbanización
 
-El valor de cada elemento de esa columna es un texto; y del caso del ejemplo sólo queremos los porcentajes. Utilicemos esa celda y luego generalicemos.
+El valor de cada elemento de esa columna es un texto; esos dos porcentajes deben a diferentes columnas. Les mostraré dos caminos.
 
-### Uso de expresiones regulares
+### 1. Uso de expresiones regulares
 
 Instale y use la librería **stringr**:
 
@@ -147,7 +147,7 @@ Veamos:
 head(urban[,-2]) # sin mostrar la columna 'sucia'
 ```
 
-### Uso de particiones
+### 2. Uso de particiones
 
 Voy a ver como usar otra estrategia para obtener lo mismo que antes, pero voy a usar particiones:
 
@@ -226,7 +226,7 @@ head(urban[,-2])
 
 Ambos caminos funcionaron bien. 
 
-### Otras funciones
+### 3. Otras funciones
 
 También es importante la función **gsub**, que busca un character y lo reemplaza:
 ```{r, eval=FALSE}
