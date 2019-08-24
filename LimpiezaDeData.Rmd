@@ -88,48 +88,66 @@ str_extract_all('25.3%,0% y 23.5% 13 34 hola', "\\d+\\.*\\d*\\%")
 
 ```{r, eval=FALSE}
 # porcentaje sin el simbolo
-str_extract_all('25.3%,0% y 23.5% 13 34 hola', "(\\d+\\.?\\d?)(?=\\%)")
+
+#  \\-
+    
+str_extract_all('25.3%,0% y 23.5% 13 34 hola', "(\\d+\\.*\\d*)(?=\\%)")
 ```
+
+Y si hubiera negativos?
+
+```{r, eval=FALSE}
+# porcentaje sin el simbolo
+    
+str_extract_all('25.3%,0% y -23.5% 13 34 hola', "(\\d+\\.*\\d*)(?=\\%)")
+```
+
+```{r, eval=FALSE}
+# porcentaje sin el simbolo hasta negativos
+    
+str_extract_all('25.3%,0% y -23.5% 13 34 hola', "(\\-*\\d+\\.*\\d*)(?=\\%)")
+```
+
 
 Sabiendo estas opciones, un detalle más sobre lo que tenemos:
 ```{r, eval=FALSE}
 # con [[1]] recien accedemos al elemento:
-str_extract_all('25.3%, 0%y 23%', "(\\d+\\.?\\d?)(?=\\%)")[[1]]
+str_extract_all('25.3%, 0%y 23%', "(\\-*\\d+\\.*\\d*)(?=\\%)")[[1]]
 ```
 
 ```{r, eval=FALSE}
 # primer valor es
-str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][1]
+str_extract_all('25%, 0% y 23.5%', "(\\-*\\d+\\.*\\d*)(?=\\%)")[[1]][1]
 ```
 
 ```{r, eval=FALSE}
 # segundo valor es
-str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][2]
+str_extract_all('25%, 0% y 23.5%', "(\\-*\\d+\\.*\\d*)(?=\\%)")[[1]][2]
 ```
 
 
 ```{r, eval=FALSE}
 # tercer valor es
-str_extract_all('25%, 0% y 23.5%', "(\\d+\\.?\\d?)(?=\\%)")[[1]][3]
+str_extract_all('25%, 0% y 23.5%', "(\\-*\\d+\\.*\\d*)(?=\\%)")[[1]][3]
 ```
 
 
 Apliquemoslo a la columna:
 
 ```{r, eval=FALSE}
-str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)")
+str_extract_all(urban$Urbanization,pattern="(\\-*\\d+\\.*\\d*)(?=\\%)")
 ```
 
 La estructura obtenida no facilitaria el trabajo de producir dos columnas. El usar **simplify** lo hace mas facil:
 
 ```{r, eval=FALSE}
-str_extract_all(urban$Urbanization,pattern="(\\d+\\.?\\d?)(?=\\%)",simplify = T)
+str_extract_all(urban$Urbanization,pattern="(\\-*\\d+\\.*\\d*)(?=\\%)",simplify = T)
 ```
 
 Esa matriz anterior me permite acceder a cada columna asi:
 Entonces:
 ```{r, eval=FALSE}
-PATRON="(\\d+\\.?\\d?)(?=\\%)"
+PATRON="(\\-*\\d+\\.*\\d*)(?=\\%)"
 COLSUCIA=urban$Urbanization
 
 # UNA COLUMNA
@@ -183,7 +201,7 @@ Si una cel da es asi:
 urban$pop_urb2[1]
 ```
 
-Puedo teneer mejor texto si la divido y me quedo con el primer elemento:
+Puedo tener mejor texto si la divido y me quedo con el primer elemento:
 
 ```{r, eval=FALSE}
 urban$pop_urb2=str_split(urban$pop_urb2,
@@ -224,7 +242,26 @@ Veamos:
 head(urban[,-2])
 ```
 
-Ambos caminos funcionaron bien. 
+### 3. Parsers
+
+Los interpretes pueden facilitar en algo, cuando se trate de un único número en la columna:
+
+```{r, eval=FALSE}
+library(readr)
+parse_number(urban$Urbanization)
+```
+
+Pero sólo recupera el primer valor.
+
+En ese sentido, podemos usarlo combinado con la estrategia separadora:
+```{r, eval=FALSE}
+library(magrittr) # para %>%
+
+str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,1]%>%parse_number()
+```
+```{r, eval=FALSE}
+str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,2]%>%parse_number()
+```
 
 ### 3. Otras funciones
 

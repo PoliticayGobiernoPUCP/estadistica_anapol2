@@ -23,12 +23,51 @@ ____
 Cargamos datos: 
 
 ```{r}
-library(htmltab) #instalemos primero 
+library(htmltab) #activando (debe estar instalado)
 
 url1 = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/211rank.html" 
 gdp = htmltab(doc = url1, 
                which ='//*[@id="rankOrder"]',
                encoding = "UTF-8") 
+```
+
+Verificando estructura:
+```{r}
+str(gdp)
+```
+
+
+Notamos que la terceca y la cuarta columna tienen informacion numerica y de texto. Antes de hacer cambiamos, pongamosle nombres simples:
+
+
+```{r}
+names(gdp)[c(3,4)]=c('pbi','estimado')
+```
+
+Resolvamos la que tiene numeros como moneda ('currency'). Como sólo es un valor, podemos usar la función *parse_number* de la bilioteca **readr** (verificar si la tienes)>
+
+```{r}
+library(readr)
+
+parse_number('US$ 23,998.56') # solo recupera primer numero
+```
+
+De ahí que:
+```{r}
+gdp$pbi=parse_number(gdp$pbi)
+```
+
+Para el segundo caso, podemos usar:
+```{r}
+library(stringr)
+library(magrittr)  # para el %>%
+str_extract_all(gdp$estimado,pattern="\\d+",simplify = T)[,1]%>%as.numeric()
+```
+
+O...
+
+```{r}
+parse_number(gdp$estimado) # ya está convertido en numero.
 ```
 
 
