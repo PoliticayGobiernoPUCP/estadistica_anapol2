@@ -263,7 +263,7 @@ str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,1]
 str_split(urban$Urbanization,pattern = 'rate of urbanization:',simplify = T)[,2]%>%parse_number()
 ```
 
-### 3. Otras funciones
+### 4. Otras funciones
 
 También es importante la función **gsub**, que busca un character y lo reemplaza:
 ```{r, eval=FALSE}
