@@ -322,6 +322,10 @@ str(urban)
 
 2. Traer la tabla de este [link](https://en.wikipedia.org/wiki/Democracy_Index) y dejar  una tabla en R más limpia.
 
+3.  Traer la tabla de este [link](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/211rank.html) y dejar  una tabla en R más limpia.
+
+
+
 
 _____
 <br></br>

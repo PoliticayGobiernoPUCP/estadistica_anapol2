@@ -44,276 +44,15 @@ Notamos que la terceca y la cuarta columna tienen informacion numerica y de text
 names(gdp)[c(3,4)]=c('pbi','estimado')
 ```
 
-Resolvamos la que tiene numeros como moneda ('currency'). Como sólo es un valor, podemos usar la función *parse_number* de la bilioteca **readr** (verificar si la tienes)>
+Como sólo necesitamos un numero en cada columna:
 
 ```{r}
-library(readr)
-
-parse_number('US$ 23,998.56') # solo recupera primer numero
-```
-
-De ahí que:
-```{r}
-gdp$pbi=parse_number(gdp$pbi)
-```
-
-Para el segundo caso, podemos usar:
-```{r}
-library(stringr)
-library(magrittr)  # para el %>%
-str_extract_all(gdp$estimado,pattern="\\d+",simplify = T)[,1]%>%as.numeric()
-```
-
-O...
-
-```{r}
-parse_number(gdp$estimado) # ya está convertido en numero.
-```
-
-
-**¿Sobra o falta algo?**
-
-Filas sin sentido, filas o columnas vacias, filas resumen, nombres de columna muy largos, etc.
-
-Últimos casos: 
-
-```{r}
-tail(gdp) #no hay filas por eliminar
-```
-
-Primeros casos:
-
-```{r}
-head(gdp)#no hay filas por eliminar
-```
-
-Nombres de Variables: 
-```{r}
-names(gdp)
-```
-
-
-Selecciono variables de trabajo:
-
-```{r}
-gdp = gdp[,c(2,3)]  #columnas 2 y 3
-```
-
-Cambiamos nombre de las variables: 
-```{r}
-names(gdp) = c("Pais", "PBI")
-```
-
-Revisemos estructura de datos:
-
-```{r}
-str(gdp)
+library(readr) # activando
+gdp[,c(3,4)]=lapply(gdp[,c(3,4)],parse_number)
 ```
 
 ```{r}
-summary(gdp) #estadisticos?
-```
-
-Eliminemos simbolos de moneda y comas de la variable PBI:
-
-```{r}
-gdp$PBI =   gsub("\\$|\\,", "", gdp$PBI) #| es "o" 
-
-
-gdp$PBI #Resultado
-```
-
-Convertimos variable a numérica:
-
-```{r}
-gdp$PBI = as.numeric(gdp$PBI)
-
-summary(gdp) #verificamos
-```
-
-
-**Data 2: Urbanización** 
-
-Cargamos datos: 
-
-```{r}
-url2 = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html"
-
-urban = htmltab(doc = url2, 
-                which ='//*[@id="fieldListing"]',
-                encoding = "UTF-8")
-
-```
-```{r}
-head(urban)
-```
-
-Revisemos estructura de datos:
-
-```{r}
-str(urban)
-```
-
-Veamos unas celdas:
-
-```{r}
-urban$Urbanization[1:3]
-```
-
-Lo anterior nos permite  encontrar un patrón que nos permita seleccionar los datos de interés. 
-
-```{r}
-library(tidyr)
-urban=separate(urban,Urbanization,
-               into=c("Urbano"), 
-               "% of total population")
-```
-
-```{r}
-head(urban)
-```
-```{r}
-library(stringr)
-
-str_extract(urban$Urbano, "\\d+\\.*\\d*")
-```
-
-```{r}
-urban$Urbano=as.numeric(
-        str_extract(urban$Urbano, "\\d+\\.*\\d*")
-        )
-```
-
-
-
-```{r}
-summary(urban)
-```
-```{r}
-names(urban)[1]
-```
-
-```{r}
-names(urban)[1]="Pais"
-names(urban)
-```
-
-
-**Data 3: Emisión de CO2** 
-
-Cargamos datos: 
-
-```{r}
-url3 = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/274.html"
-cdio<- htmltab(doc = url3, 
-                  which ='//*[@id="fieldListing"]',encoding = "UTF-8")
-
-```
-
-```{r}
-head(cdio)
-```
-
-
-
-Cambiamos nombre de las variables: 
-```{r}
-names(cdio) = c("Pais", "co2")
-```
-
-```{r}
-separate(cdio,co2,
-         into=c("co2"), 
-         "\\(")
-```
-
-```{r}
-cdio=separate(cdio,co2,into=c("co2"), "\\(")
-```
-
-```{r}
-separate(cdio,co2,
-         into=c("co2",'multiplo','unidad'),
-         " ")
-```
-
-```{r}
-cdio=separate(cdio,co2,into=c("co2",'multiplo','unidad'), " ")
-```
-
-```{r}
-table(cdio$multiplo,useNA ='always')
-```
-
-```{r}
-table(cdio$unidad,useNA ='always')
-```
-
-No necesitamos unidad, pues no hay referencia a million ni billion
-```{r}
-cdio$unidad=NULL
-```
-
-
-Donde haya billion o million o Mt ponemos el factor multiplicador 
-```{r}
-library(dplyr)
-recode(cdio$multiplo,billion=10^9,million=10^6,Mt=1)
-```
-```{r}
-cdio$multiplo=recode(cdio$multiplo,billion=10^9,million=10^6,Mt=1)
-```
-
-```{r}
-cdio$co2
-```
-
-```{r}
-cdio$co2 =gsub(",", "", cdio$co2) #Eliminar caracteres especiales
-cdio$co2=as.numeric(cdio$co2)
-summary(cdio)
-```
-
-```{r}
-cdio$co2=(cdio$co2*cdio$multiplo)/(10^6) #base million
-```
-
-```{r}
-summary(cdio)
-```
-
-
-```{r}
-cdio$multiplo=NULL
-```
-
-
-```{r}
-merge_urban=merge(urban,gdp,all.x=T,all.y=T)
-head(merge_urban)
-```
-
-
-```{r}
-merge_urban[!complete.cases(merge_urban),]
-```
-
-```{r}
-cia=merge(merge_urban,cdio,all.x=T,all.y=T)
-head(cia)
-```
-
-
-```{r}
-cia[!complete.cases(cia),]
-```
-
-```{r}
-cia[grep("World|Euro",cia$Pais),]
-```
-
-```{r}
-cia=cia[-grep("World|Euro",cia$Pais),]
+head(gdp)
 ```
 
 
@@ -332,43 +71,51 @@ demo<- htmltab(doc = url4,
 ```
 
 ```{r}
-head(demo)
+str(demo)
 ```
 
+Los nombres no ayudan:
 ```{r}
-tail(demo)
+names(demo)
 ```
 
-Nombre inadecuados. Guardando los actuales:
-
+Veamos:
 ```{r}
-oldNames=as.data.frame(names(demo))
-oldNames
-```
-```{r}
-as.vector(unlist(separate(oldNames,'names(demo)','newNames',sep=" ")))
+library(stringr)
+library(magrittr)
+str_split(names(demo),">>",simplify = T)[,1]%>%   #divide
+    gsub('\\s*','',.)                             #reemplaza TODO espacio
 ```
 
+De ahí que:
+
 ```{r}
-names(demo)=as.vector(unlist(separate(oldNames,'names(demo)','newNames',sep=" ")))
-head(demo)
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s*','',.)
 ```
+
+Recuerda que habiá un NA en los **nombres**. Completando el faltante:
+
+```{r}
+names(demo)[is.na(names(demo))]='Region'
+```
+
+
+Veamos nuevamente la estructura:
+
 ```{r}
 str(demo)
 ```
 
-
+Pasemos los valores numericos a su verdadero tipo
 ```{r}
-# sale lo que quiero?
-lapply(demo[,c(3:8)],as.numeric)
+demo[,c(3:8)]=lapply(demo[,c(3:8)], as.numeric)
 ```
 
-
+Si cuando pasas valores a numérico R te dice que ha creado NAs, verifica qué pasó así:
 ```{r}
-
-# lo ejecuto:
-demo[,c(3:8)]=lapply(demo[,c(3:8)],as.numeric)
+demo[!complete.cases(demo[,c(3:8)]),]
 ```
+
 
 ```{r}
 # que valores tengo?
@@ -378,6 +125,7 @@ table(demo$Regimetype,exclude = 'nothing')
 ```{r}
 #sale lo que quiero?
 
+library(dplyr)
 recode(demo$Regimetype,
        'Full democracy'='4FullDemocracy',
        'Flawed democracy'='3FlawedDemocracy',
@@ -401,10 +149,63 @@ demo$Regimetype=as.ordered(demo$Regimetype)
 demo$Regimetype
 ```
 
-No quero esto:
+
+
+```{r}
+linkPage='https://www.nationsonline.org/oneworld/corruption.htm'
+linkTabla='/html/body/table[3]/tbody' # el XPATH
+corruption = htmltab(doc = linkPage, 
+               which =linkTabla) 
+```
+
+
+```{r}
+str(corruption)
+```
+
+reduzcamos nombres
+
+```{r}
+names(corruption)=gsub('\\s*','',names(corruption))
+```
+
+Pasemos a numérico:
+
+```{r}
+corruption[,c(3:7)]=lapply(corruption[,c(3:7)],as.numeric)
+```
+
+Notese que aquí se han producido errores, veamos en qué país fue:
+```{r}
+corruption[apply(is.na(corruption[,c(3:7)]), 1, all),]
+```
+
+
+Vemos que hay varios paises que no tenían valores, pero la fila _178_ no es un país. Así queda la data:
+```{r}
+corruption=corruption[!apply(is.na(corruption[,c(3:7)]), 1, all),]
+```
+
+
+Que tenemos:
+
+```{r}
+names(demo)
+names(gdp)
+names(corruption)
+```
 ```{r}
 demo$Rank=NULL
-demo$Score=NULL
+names(demo)[names(demo)=='Score']='ScoreDemo'
+gdp$Rank=NULL
+corruption$Rank=NULL
+
+```
+
+
+
+```{r}
+str(gdp)
 ```
 
 ```{r}
@@ -413,37 +214,36 @@ str(demo)
 
 
 ```{r}
-str(cia)
+str(corruption)
 ```
 
+
+```{r}
+table(corruption$Region)
+```
+
+```{r}
+table(demo$Region)
+```
+
+
+```{r}
+demo$Region=NULL
+```
 
 ```{r}
 # merge no detallado, solo queda lo que coincida en ambas:
-merge(cia,demo,by.x = 'Pais',by.y = 'Country')
-```
-```{r}
-# esto deberi limpiar:
-trimws(demo$Country)
+merge(corruption,demo,by.x = 'Country',by.y = 'Country')
 ```
 
-Debes ir al help, y te recomienda:
 ```{r}
-
-trimws(demo$Country,whitespace = "[\\h\\v]")
+corrupdemo=merge(corruption,demo,by.x = 'Country',by.y = 'Country')
 ```
 
-Lo usas:
-```{r}
-demo$Country=trimws(demo$Country,whitespace = "[\\h\\v]")
-```
 
 Y procedes con el merge:
 ```{r}
-merge(cia,demo,by.x = 'Pais',by.y = 'Country')
-```
-
-```{r}
-ciademo=merge(cia,demo,by.x = 'Pais',by.y = 'Country')
+corrupdemogdp=merge(corrupdemo,gdp)
 ```
 
 _____
