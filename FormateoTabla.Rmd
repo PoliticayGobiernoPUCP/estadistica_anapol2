@@ -209,6 +209,15 @@ summary(corrgdpdemo)
 ## 3. Appending
 
 Appending es unir diversas tablas en una, sólo que no añade columnas nuevas, sino que todas son iguales.
+```{r}
+library(purrr)
+library(readxl)
+file='data/viaticos_2018_nac.xlsx'
+
+viaticos <- import_list(file,rbind = TRUE)
+str(viaticos)
+```
+
 
 
 
