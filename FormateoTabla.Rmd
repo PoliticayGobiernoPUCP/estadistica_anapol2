@@ -18,10 +18,8 @@ ____
 
 ____
 
-Merging
 
 
-Appending
 
 
 Reshaping
@@ -75,96 +73,142 @@ write.csv(demo,"data/demo.csv",row.names = F)
 ```
 
 
+## 1. Merging
+
+Este proceso combina data frames con difente información, siempre que tengan un campo común, y este no se repita e ninguna otra columna. Traigamos tres data frames:
 
 ```{r}
-# que valores tengo?
-table(demo$Regimetype,exclude = 'nothing')
+library(rio)
+
+base='https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/'
+
+corruptionLK=paste0(base,'corruption.csv')
+gdpLK=paste0(base,'gdp.csv')
+demoLK=paste0(base,'demo.csv')
+
+corru=import(corruptionLK,stringsAsFactors = F)
+gdp=import(gdpLK,stringsAsFactors = F)
+
+democ=import(demoLK,stringsAsFactors = F)
+
 ```
 
-```{r}
-#sale lo que quiero?
-
-library(dplyr)
-recode(demo$Regimetype,
-       'Full democracy'='4FullDemocracy',
-       'Flawed democracy'='3FlawedDemocracy',
-       'Hybrid regime'='2Hybrid regime',
-       'Authoritarian'='1Authoritarian')
-```
-```{r}
-demo$Regimetype= recode(demo$Regimetype,
-       'Full democracy'='4FullDemocracy',
-       'Flawed democracy'='3FlawedDemocracy',
-       'Hybrid regime'='2Hybrid regime',
-       'Authoritarian'='1Authoritarian')
-```
+Estos tres data frames deben tener un campo (columa) en común que sirva de **key**:
 
 ```{r}
-# poner numero delante, ayuda a crear una ordinal
-demo$Regimetype=as.ordered(demo$Regimetype)
-```
-
-```{r}
-demo$Regimetype
-```
-
-
-```{r}
-names(demo)
+names(corru)
 names(gdp)
-names(corruption)
+names(democ)
 ```
+
+El merge producirá una tabla, integrando las columnas que correspondan a cada _key_. Vea que la columna _rank_ está presente en las tres pero no es la _key_; como el ranking se puede calcular si se necesitase, eliminemoslos de cada data frame:
+
 ```{r}
-demo$Rank=NULL
-names(demo)[names(demo)=='Score']='ScoreDemo'
+corru$Rank=NULL
 gdp$Rank=NULL
-corruption$Rank=NULL
+democ$Rank=NULL
+```
 
+La columna _Score_ de la tabla _democ_ podriamos cambiar para no olvidar qué representa:
+
+```{r}
+names(democ)[names(democ)=='Score']='ScoreDemo'
 ```
 
 
-
+Hay una column _Region_ en dos tablas:
 ```{r}
-str(gdp)
-```
-
-```{r}
-str(demo)
-```
-
-
-```{r}
-str(corruption)
-```
-
-
-```{r}
-table(corruption$Region)
+table(corru$Region)
 ```
 
 ```{r}
-table(demo$Region)
+table(democ$Region)
 ```
 
+Quedémonos con la de democracia:
+```{r}
+corru$Region=NULL
+```
+
+
+
+El _key_ es _Country_, usemoslo de manera explicita una vez
 
 ```{r}
-demo$Region=NULL
+corrgdp=merge(corru,gdp,by.x='Country', by.y='Country') # no era necesario KEY aqui!
+corrgdpdemo=merge(corrgdp,democ)
+```
+
+Veamos:
+
+```{r}
+head(corrgdpdemo)
 ```
 
 ```{r}
-# merge no detallado, solo queda lo que coincida en ambas:
-merge(corruption,demo,by.x = 'Country',by.y = 'Country')
+tail(corrgdpdemo)
+```
+
+
+
+## 2. Formateo de Escala
+
+```{r}
+str(corrgdpdemo)
+```
+
+La _key_ debe quedar como texto ( _chr_ ), pero hay scores que deben pasar a numerico, otra a nominal y una a ordinal.
+
+* a numerico...
+```{r}
+# 
+corrgdpdemo[,c(2:6)]=lapply(corrgdpdemo[,c(2:6)],as.numeric)
+```
+
+* a nominal...
+
+```{r}
+# todo OK?
+table(corrgdpdemo$Region)
 ```
 
 ```{r}
-corrupdemo=merge(corruption,demo,by.x = 'Country',by.y = 'Country')
+corrgdpdemo$Region=as.factor(corrgdpdemo$Region)
 ```
 
 
-Y procedes con el merge:
+* a ordinal...
+
 ```{r}
-corrupdemogdp=merge(corrupdemo,gdp)
+# todo OK?
+table(corrgdpdemo$Regimetype)
 ```
+
+```{r}
+library(dplyr)
+
+corrgdpdemo$Regimetype= recode(corrgdpdemo$Regimetype,
+       'Full democracy'='4FullDemocracy',
+       'Flawed democracy'='3FlawedDemocracy',
+       'Hybrid regime'='2Hybrid regime',
+       'Authoritarian'='1Authoritarian')
+
+# poner numero delante, ayuda a crear una ordinal
+corrgdpdemo$Regimetype=as.ordered(corrgdpdemo$Regimetype)
+
+```
+
+
+Ahora está listo para los estadisticos:
+
+```{r}
+summary(corrgdpdemo)
+```
+
+
+## 3. Appending
+
+Appending es unir diversas tablas en una, sólo que no añade columnas nuevas, sino que todas son iguales.
 
 
 
