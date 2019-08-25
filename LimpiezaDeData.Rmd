@@ -325,6 +325,10 @@ str(urban)
 3.  Traer la tabla de este [link](https://www.cia.gov/library/publications/resources/the-world-factbook/fields/211rank.html) y dejar  una tabla en R más limpia.
 
 
+4.  Traer la tabla de este [link](https://en.wikipedia.org/wiki/List_of_freedom_indices) y dejar  una tabla en R más limpia.
+
+
+
 
 
 _____

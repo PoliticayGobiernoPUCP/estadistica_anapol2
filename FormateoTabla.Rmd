@@ -18,6 +18,16 @@ ____
 
 ____
 
+Merging
+
+
+Appending
+
+
+Reshaping
+
+
+
 **Data 1: PBI per cápita** 
 
 Cargamos datos: 
@@ -245,6 +255,18 @@ Y procedes con el merge:
 ```{r}
 corrupdemogdp=merge(corrupdemo,gdp)
 ```
+
+
+```{r, eval=TRUE}
+library(htmltab) 
+
+linkCIA_urb = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html"
+linkPath_urb='//*[@id="fieldListing"]'
+
+urban = htmltab(doc = linkCIA_urb, 
+                which =linkPath_urb)
+```
+
 
 _____
 <br></br>
