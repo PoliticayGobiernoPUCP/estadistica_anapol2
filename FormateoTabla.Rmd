@@ -26,105 +26,54 @@ Appending
 
 Reshaping
 
+Aggregating
 
 
-**Data 1: PBI per cápita** 
 
-Cargamos datos: 
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 library(htmltab) #activando (debe estar instalado)
 
 url1 = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/211rank.html" 
 gdp = htmltab(doc = url1, 
                which ='//*[@id="rankOrder"]',
                encoding = "UTF-8") 
-```
 
-Verificando estructura:
-```{r}
-str(gdp)
-```
-
-
-Notamos que la terceca y la cuarta columna tienen informacion numerica y de texto. Antes de hacer cambiamos, pongamosle nombres simples:
-
-
-```{r}
 names(gdp)[c(3,4)]=c('pbi','estimado')
-```
 
-Como sólo necesitamos un numero en cada columna:
-
-```{r}
 library(readr) # activando
 gdp[,c(3,4)]=lapply(gdp[,c(3,4)],parse_number)
-```
-
-```{r}
-head(gdp)
-```
 
 
-
-
-**Data 4: DEMOCRACY INDEX** 
-
-Cargamos datos: 
-
-```{r}
-library(htmltab)
 url4 = "https://en.wikipedia.org/wiki/Democracy_Index"
 demo<- htmltab(doc = url4, 
                   which ='//*[@id="mw-content-text"]/div/table[2]/tbody',encoding = "UTF-8")
 
-```
-
-```{r}
-str(demo)
-```
-
-Los nombres no ayudan:
-```{r}
-names(demo)
-```
-
-Veamos:
-```{r}
 library(stringr)
 library(magrittr)
-str_split(names(demo),">>",simplify = T)[,1]%>%   #divide
-    gsub('\\s*','',.)                             #reemplaza TODO espacio
-```
-
-De ahí que:
-
-```{r}
 names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s*','',.)
-```
 
-Recuerda que habiá un NA en los **nombres**. Completando el faltante:
-
-```{r}
 names(demo)[is.na(names(demo))]='Region'
+
+linkPage='https://www.nationsonline.org/oneworld/corruption.htm'
+linkTabla='/html/body/table[3]/tbody' # el XPATH
+corruption = htmltab(doc = linkPage, 
+               which =linkTabla) 
+
+names(corruption)=gsub('\\s*','',names(corruption))
+
+
+
+```
+```{r, echo=FALSE, eval=FALSE}
+write.csv(corruption,"data/corruption.csv",row.names = F)
+
+write.csv(gdp,"data/gdp.csv",row.names = F)
+
+write.csv(demo,"data/demo.csv",row.names = F)
+
 ```
 
-
-Veamos nuevamente la estructura:
-
-```{r}
-str(demo)
-```
-
-Pasemos los valores numericos a su verdadero tipo
-```{r}
-demo[,c(3:8)]=lapply(demo[,c(3:8)], as.numeric)
-```
-
-Si cuando pasas valores a numérico R te dice que ha creado NAs, verifica qué pasó así:
-```{r}
-demo[!complete.cases(demo[,c(3:8)]),]
-```
 
 
 ```{r}
@@ -159,45 +108,6 @@ demo$Regimetype=as.ordered(demo$Regimetype)
 demo$Regimetype
 ```
 
-
-
-```{r}
-linkPage='https://www.nationsonline.org/oneworld/corruption.htm'
-linkTabla='/html/body/table[3]/tbody' # el XPATH
-corruption = htmltab(doc = linkPage, 
-               which =linkTabla) 
-```
-
-
-```{r}
-str(corruption)
-```
-
-reduzcamos nombres
-
-```{r}
-names(corruption)=gsub('\\s*','',names(corruption))
-```
-
-Pasemos a numérico:
-
-```{r}
-corruption[,c(3:7)]=lapply(corruption[,c(3:7)],as.numeric)
-```
-
-Notese que aquí se han producido errores, veamos en qué país fue:
-```{r}
-corruption[apply(is.na(corruption[,c(3:7)]), 1, all),]
-```
-
-
-Vemos que hay varios paises que no tenían valores, pero la fila _178_ no es un país. Así queda la data:
-```{r}
-corruption=corruption[!apply(is.na(corruption[,c(3:7)]), 1, all),]
-```
-
-
-Que tenemos:
 
 ```{r}
 names(demo)
@@ -257,15 +167,6 @@ corrupdemogdp=merge(corrupdemo,gdp)
 ```
 
 
-```{r, eval=TRUE}
-library(htmltab) 
-
-linkCIA_urb = "https://www.cia.gov/library/publications/resources/the-world-factbook/fields/349.html"
-linkPath_urb='//*[@id="fieldListing"]'
-
-urban = htmltab(doc = linkCIA_urb, 
-                which =linkPath_urb)
-```
 
 
 _____
