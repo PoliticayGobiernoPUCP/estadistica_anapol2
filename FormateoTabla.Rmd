@@ -22,11 +22,6 @@ ____
 
 
 
-Reshaping
-
-Aggregating
-
-
 
 
 ```{r, echo=FALSE, eval=FALSE}
@@ -208,17 +203,90 @@ summary(corrgdpdemo)
 
 ## 3. Appending
 
-Appending es unir diversas tablas en una, sólo que no añade columnas nuevas, sino que todas son iguales.
-```{r}
-library(purrr)
-library(readxl)
-file='data/viaticos_2018_nac.xlsx'
+Appending es unir diversas tablas en una sola,pero todas tienen las mismas columnas.
 
-viaticos <- import_list(file,rbind = TRUE)
-str(viaticos)
+Dejenme traer tres data frames:
+
+
+```{r}
+df1=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p1.csv')
+df2=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p2.csv')
+df3=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p3.csv')
+df4=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p4.csv')
+```
+
+Note que cada una tiene las mismas columnas:
+
+
+```{r}
+df1
 ```
 
 
+```{r}
+df2
+```
+```{r}
+df4
+```
+
+Para tener un unico data frame, necesitamos anexarlas:
+
+```{r}
+df1234=rbind(df1,df2,df3,df4)
+```
+
+
+Un caso especial es cuando tienes un archivo en excel
+
+
+```{r}
+
+lkexcel="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/viaticos_2018_nac.xlsx"
+
+library(rvest)
+library(rio)
+
+
+
+download.file(lkexcel, "file.xlsx")
+
+viaticos <- import_list('file.xlsx',rbind = TRUE)
+str(viaticos)
+
+```
+
+
+Aggregating
+
+```{r}
+Lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/AGUA.xlsx"
+agua=import(Lk)
+```
+
+```{r}
+str(agua)
+```
+
+```{r}
+head(agua)
+```
+
+```{r}
+aggregate(cbind(todaSemana, NoTodaSemana) ~ Departamento, 
+          data = agua, sum)
+```
+
+
+```{r}
+aggregate(cbind(todaSemana, NoTodaSemana) ~ Departamento + Provincia, 
+          data = agua, sum)
+```
+
+```{r}
+aggregate(cbind(todaSemana, NoTodaSemana) ~ Provincia + Departamento, 
+          data = agua, sum)
+```
 
 
 
