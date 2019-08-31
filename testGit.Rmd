@@ -2,6 +2,6 @@ git config user.email "jmagallanes@pucp.edu.pe"
 
 git config user.name "MAGALLANESJoseManuel"
 
-git config remote.origin.url "git@github.com:PoliticayGobiernoPUCP/Gob_TomaDeDecisiones.git"
+git config remote.origin.url "git@github.com:PoliticayGobiernoPUCP/EstadisticaSectorPublico.git"
 
 
