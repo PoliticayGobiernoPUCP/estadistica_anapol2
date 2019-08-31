@@ -201,48 +201,175 @@ ESTADISTICA PARA EL ANALISIS POLITICO II
 </ul></li>
 </ul>
 <hr />
-<div id="guia-del-curso" class="section level2">
-<h2>Guía del Curso</h2>
-<div id="unidad-1-coleccion-y-pre-procesamiento-de-datos" class="section level3">
-<h3>Unidad 1: Colección y pre procesamiento de Datos</h3>
-<ul>
-<li><a href="https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/ColeccionDeData.html">Carga de datos desde la nube</a></li>
-<li><a href="https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/LimpiezaDeData.html">Pre procesamiento de datos</a></li>
-<li><a href="https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/FormateoTabla.html">Preparación de tablas de datos</a></li>
-</ul>
+<center>
+<header>
+<h2>
+Preparación de Tabla de Datos
+</h2>
+</header>
+</center>
+<hr />
+<p><a id="beginning"></a></p>
+<hr />
+<p>Cuando has podido preparar tus tabla de datos (<em>data frame</em>) en el paso anterior, lo más probable es que estas necesiten ahora ser integradas o ajustar sus tipos de datos. Veamos los procesos asociados a esta etapa:</p>
+<ol style="list-style-type: decimal">
+<li><a href="#merge">Combinación o Merging</a></li>
+<li><a href="#escala">Ajuste de escala</a></li>
+<li><a href="#append">Anexado o Appending</a></li>
+<li><a href="#aggregate">Sintetizar o Aggregating</a></li>
+</ol>
+<p><a id="merge"></a></p>
+<div id="merging" class="section level2">
+<h2>1. Merging</h2>
+<p>Este proceso combina data frames con difente información, siempre que tengan un campo común (<strong>key</strong>), y este no se repita en ninguna otra columna. Traigamos tres data frames:</p>
+<pre class="r"><code>library(rio)
+
+#link base
+base='https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/'
+
+#creando links particulares
+corruptionLK=paste0(base,'corruption.csv')
+gdpLK=paste0(base,'gdp.csv')
+demoLK=paste0(base,'demo.csv')
+
+# trayendo data:
+corru=import(corruptionLK,stringsAsFactors = F)
+gdp=import(gdpLK,stringsAsFactors = F)
+democ=import(demoLK,stringsAsFactors = F)</code></pre>
+<p>Estos tres data frames deben tener un campo (columa) en común que sirva de <strong>key</strong>:</p>
+<pre class="r"><code>names(corru)
+names(gdp)
+names(democ)</code></pre>
+<p>El merge producirá una tabla, integrando las columnas que correspondan a cada <em>key</em>. Vea que la columna <em>rank</em> está presente en las tres pero no es la <em>key</em>; como el ranking se puede calcular si se necesitase, eliminemoslos de cada data frame:</p>
+<pre class="r"><code># eliminando
+corru$Rank=NULL
+gdp$Rank=NULL
+democ$Rank=NULL</code></pre>
+<p>La columna <em>Score</em> de la tabla <em>democ</em> podriamos cambiar para no olvidar qué representa:</p>
+<pre class="r"><code>names(democ)[names(democ)=='Score']='ScoreDemo'</code></pre>
+<p>Hay una column <em>Region</em> en dos tablas:</p>
+<pre class="r"><code>table(corru$Region)</code></pre>
+<pre class="r"><code>table(democ$Region)</code></pre>
+<p>Quedémonos con la de democracia:</p>
+<pre class="r"><code># eliminando
+corru$Region=NULL</code></pre>
+<p>El <em>key</em> es <em>Country</em>, usemoslo de manera explicita una vez</p>
+<pre class="r"><code># el key se presenta con el &quot;by&quot;
+# el x es data frame de la derecha/ el y de la izquierda
+# solo dos a la vez.
+corrgdp=merge(corru,gdp,by.x='Country', by.y='Country') # no era necesario KEY aqui!
+corrgdpdemo=merge(corrgdp,democ)</code></pre>
+<p>Veamos el resultado:</p>
+<pre class="r"><code># cabecera
+head(corrgdpdemo)</code></pre>
+<pre class="r"><code># cola
+tail(corrgdpdemo)</code></pre>
+<p><a href="#beginning">al INICIO</a></p>
+<hr />
+<p><a id="escala"></a></p>
 </div>
-<div id="unidad-2-descripcion-multivariada-de-indicadores-complejos" class="section level3">
-<h3>Unidad 2: Descripción Multivariada de Indicadores complejos</h3>
+<div id="formateo-de-escala" class="section level2">
+<h2>2. Formateo de Escala</h2>
+<p>Veamos los tipos de datos que tenemos hasta ahora:</p>
+<pre class="r"><code>str(corrgdpdemo)</code></pre>
+<p>La <em>key</em> debe quedar como texto ( <em>chr</em> ), pero hay scores que deben pasar a numerico, otra a nominal y una a ordinal.</p>
 <ul>
-<li>Conglomeración
-<ul>
-<li>Particionante</li>
-<li>Aglomerativa y divisiva</li>
-<li>Basada en densidad</li>
-</ul></li>
-<li>Factorización
-<ul>
-<li>Explorativa</li>
-<li>Confirmativa</li>
-</ul></li>
+<li><strong>a Numérico</strong>:</li>
 </ul>
-</div>
-<div id="unidad-3-modelos-estadistico-inferenciales" class="section level3">
-<h3>Unidad 3: Modelos Estadístico Inferenciales</h3>
+<p>Aplicar una funcióna un conjunto de columnas es sencillo con <strong>lapply</strong>:</p>
+<pre class="r"><code>corrgdpdemo[,c(2:6)]=lapply(corrgdpdemo[,c(2:6)],as.numeric)</code></pre>
+<p>No debería salir mensaje de NAs producidos, habría problemas de limpieza.</p>
 <ul>
-<li>Regresión Lineal y sus diagnósticos</li>
-<li>Regresión Logística</li>
-<li>Alternativas a la regresión lineal</li>
+<li><strong>a Nominal</strong>:</li>
 </ul>
-</div>
-<div id="unidad-4-presentacion-de-reportes-estadisticos" class="section level3">
-<h3>Unidad 4: Presentación de reportes estadísticos</h3>
+<p>Las nominales hay que revisar con una tabla simple:</p>
+<pre class="r"><code># todo OK?
+table(corrgdpdemo$Region)</code></pre>
+<p>Asi detectas si hay alguna <em>anomalia</em> antes de hacer el cambio.</p>
+<p>Como no hay problema, procedemos:</p>
+<pre class="r"><code># para una columna NO se necesita 'lapply'
+
+corrgdpdemo$Region=as.factor(corrgdpdemo$Region)</code></pre>
 <ul>
-<li>Estructura</li>
-<li>Gráficas</li>
-<li>Publicación</li>
+<li><strong>a Ordinal</strong>:</li>
 </ul>
+<p>Verificando los niveles:</p>
+<pre class="r"><code># todo OK?
+table(corrgdpdemo$Regimetype)</code></pre>
+<p>Lo que se necesita ahora es <strong>recodificar</strong>, poniendo un numero que indique el orden ascendente:</p>
+<pre class="r"><code>library(dplyr)
+
+corrgdpdemo$Regimetype= recode(corrgdpdemo$Regimetype,
+       'Full democracy'='4FullDemocracy',
+       'Flawed democracy'='3FlawedDemocracy',
+       'Hybrid regime'='2Hybrid regime',
+       'Authoritarian'='1Authoritarian')
+
+# poner numero delante, ayuda a crear una ordinal
+corrgdpdemo$Regimetype=as.ordered(corrgdpdemo$Regimetype)</code></pre>
+<p>Ahora está listo para los estadisticos:</p>
+<pre class="r"><code>summary(corrgdpdemo)</code></pre>
+<p><a href="#beginning">al INICIO</a></p>
+<hr />
+<p><a id="append"></a></p>
 </div>
+<div id="appending" class="section level2">
+<h2>3. Appending</h2>
+<p>Appending es unir diversas tablas en una sola,pero todas tienen los mismos nombres de columna.</p>
+<p>Dejenme traer tres data frames:</p>
+<pre class="r"><code>df1=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p1.csv')
+df2=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p2.csv')
+df3=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p3.csv')
+df4=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p4.csv')</code></pre>
+<p>Note que cada una tiene las mismas columnas:</p>
+<pre class="r"><code>names(df1) ; names(df2) ; names(df3); names(df4)</code></pre>
+<p>Pero tienen diferentes entrevistados:</p>
+<pre class="r"><code>head(df2)</code></pre>
+<pre class="r"><code>head(df4)</code></pre>
+<p>Para tener un unico data frame, necesitamos anexarlas con <strong>rbind</strong>:</p>
+<pre class="r"><code>df1234=rbind(df1,df2,df3,df4)</code></pre>
+<p>Un caso especial es cuando tienes un archivo en Excel, pues este puede tener varias hojas que puedan ser anexadas en una sola. Hagamos lo siguiente:</p>
+<ul>
+<li>Traigamos el archivo a la computadora (desde GitHub)</li>
+</ul>
+<pre class="r"><code>#link
+lkexcel=&quot;https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/viaticos_2018_nac.xlsx&quot;
+#descargando en carpeta actual
+download.file(lkexcel, &quot;file.xlsx&quot;)</code></pre>
+<ul>
+<li>Leer todas las hoas y aplicar <strong>rbind</strong>:</li>
+</ul>
+<pre class="r"><code>library(rio)
+viaticos &lt;- import_list('file.xlsx',rbind = TRUE)</code></pre>
+<ul>
+<li>Verificar:</li>
+</ul>
+<pre class="r"><code>str(viaticos)</code></pre>
+<p><a href="#beginning">al INICIO</a></p>
+<hr />
+<p><a id="aggregate"></a></p>
+</div>
+<div id="aggregating" class="section level2">
+<h2>4. Aggregating</h2>
+<p>Cuando agregas, sintetizas los valores de tu unidad de analisis en otro que contiene a un conjuntos de estas. Dejame traer estos datos del Censo Actual, que indica la disponibilidad de agua a nivel de distrito en el Perú:</p>
+<pre class="r"><code>Lk=&quot;https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/AGUA.xlsx&quot;
+agua=import(Lk)</code></pre>
+<p>Veamos ls tipos de datos:</p>
+<pre class="r"><code>str(agua)</code></pre>
+<p>Se ve que cada fila es un distrito:</p>
+<pre class="r"><code>head(agua)</code></pre>
+<p>La data muestra la cantidad de viviendas por distrito que tienen agua toda la semana o no. Como una provincia tiene varias provincias podriamos crear un data frame a nivel de departamento.</p>
+<pre class="r"><code>aggregate(cbind(todaSemana, NoTodaSemana) # dependientes
+          ~ Departamento, # nivel
+          data = agua,    # data
+          sum)            # operacion</code></pre>
+<p>Si lo quisieramos a nivel de provincia:</p>
+<pre class="r"><code>aggregate(cbind(todaSemana, NoTodaSemana) ~ Provincia + Departamento, 
+          data = agua, sum)</code></pre>
+<hr />
+<p><br /></p>
+<p><a href="#beginning">al INICIO</a></p>
+<p><a href="https://politicaygobiernopucp.github.io/estadistica_anapol2/">VOLVER A CONTENIDOS</a></p>
 </div>
 
 

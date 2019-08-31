@@ -19,7 +19,12 @@ ____
 ____
 
 
+Cuando has podido preparar tus tabla de datos (_data frame_) en el paso anterior, lo más probable es que estas necesiten ahora ser integradas o ajustar sus tipos de datos. Veamos los procesos asociados a esta etapa:
 
+1. [Combinación o Merging](#merge)
+2. [Ajuste de escala](#escala)
+3. [Anexado o Appending](#append)
+4. [Sintetizar o Aggregating](#aggregate)
 
 
 
@@ -67,30 +72,32 @@ write.csv(demo,"data/demo.csv",row.names = F)
 
 ```
 
+<a id='merge'></a>
 
 ## 1. Merging
 
-Este proceso combina data frames con difente información, siempre que tengan un campo común, y este no se repita e ninguna otra columna. Traigamos tres data frames:
+Este proceso combina data frames con difente información, siempre que tengan un campo común (**key**), y este no se repita en ninguna otra columna. Traigamos tres data frames:
 
-```{r}
+```{r, eval=FALSE}
 library(rio)
 
+#link base
 base='https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/'
 
+#creando links particulares
 corruptionLK=paste0(base,'corruption.csv')
 gdpLK=paste0(base,'gdp.csv')
 demoLK=paste0(base,'demo.csv')
 
+# trayendo data:
 corru=import(corruptionLK,stringsAsFactors = F)
 gdp=import(gdpLK,stringsAsFactors = F)
-
 democ=import(demoLK,stringsAsFactors = F)
-
 ```
 
 Estos tres data frames deben tener un campo (columa) en común que sirva de **key**:
 
-```{r}
+```{r, eval=FALSE}
 names(corru)
 names(gdp)
 names(democ)
@@ -98,7 +105,8 @@ names(democ)
 
 El merge producirá una tabla, integrando las columnas que correspondan a cada _key_. Vea que la columna _rank_ está presente en las tres pero no es la _key_; como el ranking se puede calcular si se necesitase, eliminemoslos de cada data frame:
 
-```{r}
+```{r, eval=FALSE}
+# eliminando
 corru$Rank=NULL
 gdp$Rank=NULL
 democ$Rank=NULL
@@ -106,22 +114,23 @@ democ$Rank=NULL
 
 La columna _Score_ de la tabla _democ_ podriamos cambiar para no olvidar qué representa:
 
-```{r}
+```{r, eval=FALSE}
 names(democ)[names(democ)=='Score']='ScoreDemo'
 ```
 
 
 Hay una column _Region_ en dos tablas:
-```{r}
+```{r, eval=FALSE}
 table(corru$Region)
 ```
 
-```{r}
+```{r, eval=FALSE}
 table(democ$Region)
 ```
 
 Quedémonos con la de democracia:
-```{r}
+```{r, eval=FALSE}
+# eliminando
 corru$Region=NULL
 ```
 
@@ -129,57 +138,85 @@ corru$Region=NULL
 
 El _key_ es _Country_, usemoslo de manera explicita una vez
 
-```{r}
+```{r, eval=FALSE}
+# el key se presenta con el "by"
+# el x es data frame de la derecha/ el y de la izquierda
+# solo dos a la vez.
 corrgdp=merge(corru,gdp,by.x='Country', by.y='Country') # no era necesario KEY aqui!
 corrgdpdemo=merge(corrgdp,democ)
 ```
 
-Veamos:
+Veamos el resultado:
 
-```{r}
+```{r, eval=FALSE}
+# cabecera
 head(corrgdpdemo)
 ```
 
-```{r}
+```{r, eval=FALSE}
+# cola
 tail(corrgdpdemo)
 ```
 
+[al INICIO](#beginning)
 
+______
+
+
+<a id='escala'></a>
 
 ## 2. Formateo de Escala
 
-```{r}
+Veamos los tipos de datos que tenemos hasta ahora:
+
+```{r, eval=FALSE}
 str(corrgdpdemo)
 ```
 
 La _key_ debe quedar como texto ( _chr_ ), pero hay scores que deben pasar a numerico, otra a nominal y una a ordinal.
 
-* a numerico...
-```{r}
-# 
+* __a Numérico__:
+
+Aplicar una funcióna un conjunto de columnas es sencillo con **lapply**:
+
+```{r, eval=FALSE}
 corrgdpdemo[,c(2:6)]=lapply(corrgdpdemo[,c(2:6)],as.numeric)
 ```
 
-* a nominal...
+No debería salir mensaje de NAs producidos, habría problemas de limpieza.
 
-```{r}
+
+* __a Nominal__:
+
+Las nominales hay que revisar con una tabla simple:
+
+```{r, eval=FALSE}
 # todo OK?
 table(corrgdpdemo$Region)
 ```
 
-```{r}
+Asi detectas si hay alguna _anomalia_ antes de hacer el cambio.
+
+Como no hay problema, procedemos:
+
+```{r, eval=FALSE}
+# para una columna NO se necesita 'lapply'
+
 corrgdpdemo$Region=as.factor(corrgdpdemo$Region)
 ```
 
+* __a Ordinal__:
 
-* a ordinal...
+Verificando los niveles:
 
-```{r}
+```{r, eval=FALSE}
 # todo OK?
 table(corrgdpdemo$Regimetype)
 ```
 
-```{r}
+Lo que se necesita ahora es **recodificar**, poniendo un numero que indique el orden ascendente:
+```{r, eval=FALSE}
+
 library(dplyr)
 
 corrgdpdemo$Regimetype= recode(corrgdpdemo$Regimetype,
@@ -190,25 +227,31 @@ corrgdpdemo$Regimetype= recode(corrgdpdemo$Regimetype,
 
 # poner numero delante, ayuda a crear una ordinal
 corrgdpdemo$Regimetype=as.ordered(corrgdpdemo$Regimetype)
-
 ```
 
 
 Ahora está listo para los estadisticos:
 
-```{r}
+```{r, eval=FALSE}
 summary(corrgdpdemo)
 ```
 
 
+[al INICIO](#beginning)
+
+______
+
+
+<a id='append'></a>
+
 ## 3. Appending
 
-Appending es unir diversas tablas en una sola,pero todas tienen las mismas columnas.
+Appending es unir diversas tablas en una sola,pero todas tienen los mismos nombres de columna.
 
 Dejenme traer tres data frames:
 
 
-```{r}
+```{r, eval=FALSE}
 df1=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p1.csv')
 df2=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p2.csv')
 df3=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/interview_1_2_p3.csv')
@@ -218,72 +261,89 @@ df4=read.csv('https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/m
 Note que cada una tiene las mismas columnas:
 
 
-```{r}
-df1
+```{r, eval=FALSE}
+names(df1) ; names(df2) ; names(df3); names(df4)
 ```
 
+Pero tienen diferentes entrevistados:
 
-```{r}
-df2
+```{r, eval=FALSE}
+head(df2)
 ```
-```{r}
-df4
+```{r, eval=FALSE}
+head(df4)
 ```
 
-Para tener un unico data frame, necesitamos anexarlas:
+Para tener un unico data frame, necesitamos anexarlas con **rbind**:
 
-```{r}
+```{r, eval=FALSE}
 df1234=rbind(df1,df2,df3,df4)
 ```
 
 
-Un caso especial es cuando tienes un archivo en excel
+Un caso especial es cuando tienes un archivo en Excel, pues este puede tener varias hojas que puedan ser anexadas en una sola. Hagamos lo siguiente:
 
+* Traigamos el archivo a la computadora (desde GitHub)
 
-```{r}
-
+```{r, eval=FALSE}
+#link
 lkexcel="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/viaticos_2018_nac.xlsx"
-
-library(rvest)
-library(rio)
-
-
-
+#descargando en carpeta actual
 download.file(lkexcel, "file.xlsx")
+```
 
+* Leer todas las hoas y aplicar **rbind**:
+```{r, eval=FALSE}
+library(rio)
 viaticos <- import_list('file.xlsx',rbind = TRUE)
-str(viaticos)
+```
 
+* Verificar:
+
+```{r, eval=FALSE}
+str(viaticos)
 ```
 
 
-Aggregating
+[al INICIO](#beginning)
 
-```{r}
+______
+
+<a id='aggregate'></a>
+
+## 4. Aggregating
+
+Cuando agregas, sintetizas los valores de tu unidad de analisis en otro que contiene a un conjuntos de estas. Dejame traer estos datos del Censo Actual, que indica la disponibilidad de agua a nivel de distrito en el Perú:
+
+```{r, eval=FALSE}
 Lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/AGUA.xlsx"
 agua=import(Lk)
 ```
 
-```{r}
+Veamos ls tipos de datos:
+
+```{r, eval=FALSE}
 str(agua)
 ```
 
-```{r}
+Se ve que cada fila es un distrito:
+
+```{r, eval=FALSE}
 head(agua)
 ```
 
-```{r}
-aggregate(cbind(todaSemana, NoTodaSemana) ~ Departamento, 
-          data = agua, sum)
+La data muestra la cantidad de viviendas por distrito que tienen agua toda la semana o no. Como una provincia tiene varias provincias podriamos crear un data frame a nivel de departamento.
+
+```{r, eval=FALSE}
+aggregate(cbind(todaSemana, NoTodaSemana) # dependientes
+          ~ Departamento, # nivel
+          data = agua,    # data
+          sum)            # operacion
 ```
 
+Si lo quisieramos a nivel de provincia:
 
-```{r}
-aggregate(cbind(todaSemana, NoTodaSemana) ~ Departamento + Provincia, 
-          data = agua, sum)
-```
-
-```{r}
+```{r, eval=FALSE}
 aggregate(cbind(todaSemana, NoTodaSemana) ~ Provincia + Departamento, 
           data = agua, sum)
 ```
