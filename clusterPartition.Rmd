@@ -21,3 +21,14 @@ ____
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/GApaAnGx3Fw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
+
+```{r}
+lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/finaldemohappyurbanco2.rds"
+
+dataMundo <- readRDS(gzcon(url(lk)))
+```
+
+```{r}
+str(dataMundo)
+```
+
