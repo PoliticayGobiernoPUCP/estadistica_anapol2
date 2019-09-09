@@ -1,0 +1,49 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Introducción al Análisis de Conglomerados</h2>  </header></center>
+____
+
+<a id='beginning'></a>
+
+Hacemos análisis de cluster cuando tenemos muchos casos (filas) y deseamos agruparlos por afinidad, tal que un conglomerado o cluster represente casos homogeneos, y que haya una distancia tal que los clusters muestren heterogeneidad entre sí.
+
+Para hacer análisis de clusters, necesitas que el caso aparezca una vez en cada fila en tu data frame. Si tienes en cuenta la data del [índice de democracia](https://en.wikipedia.org/wiki/Democracy_Index). En ese link, notas que los paises han recibido un **color** que indicaría justamente un grupo:
+
+<iframe width="800" height="600" src="https://en.wikipedia.org/wiki/Democracy_Index#Democracy_Index_by_country_2018"></iframe>
+
+¿Es ese grupo un **cluster**? Superficialmente podríamos decir que sí, pero para fines del curso no. Esos grupos han sido calculados **promediando** los componentes del indice y **asumiendo** puntos de corte:
+
+<iframe width="800" height="600" src="https://en.wikipedia.org/wiki/Democracy_Index#Democracy_Index_by_regime_type" ></iframe>
+
+
+El promedio es una operación aritmética que devuelve un valora partir de otros, el color grupos que representa pasar de un nivel promedio a otro.
+
+Por otro lado, cuando calculamos clusters:
+
+* Usamos mejor toda la información disponible. Es una tecnica multivariada, y tomará en cuenta diversos tipos de datos que no podrían ser _promediables_.
+
+* La operación de promediar se reemplaza por la de encontrar "distancias" entre los casos. La distancia multivariada es la que determina que casos debe agruparse juntos, cómo separarse, y qué casos considerarse singulares. El video siguiente trata de explicar ello:
+
+<iframe width="800" height="600" src="https://www.youtube.com/watch?v=3MnVCX94jJM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* Tenemos muchos algoritmos. Para diversas situaciones, tenemos diferentes algoritmos recomendables para encontrar una mejor clusterización. Los algoritmos vistos en este curso corresponden a tres famlias:
+  - Particionantes.
+  - Jerarquizantes.
+  - Basados en densidad.
+  
+  Este video te dará una rápida introducción a ellos (en el curso no vemos todos los tipos):
+  
+  <iframe width="800" height="600" src="https://www.youtube.com/watch?v=Se28XHI2_xE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+

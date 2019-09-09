@@ -1,0 +1,85 @@
+
+<iframe width="800" height="600" src="https://www.youtube.com/embed/GApaAnGx3Fw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+```{r}
+lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/finaldemohappyurbanco2.rds"
+
+dataMundo <- readRDS(gzcon(url(lk)))
+```
+
+```{r}
+str(dataMundo)
+```
+
+```{r}
+library(cluster)
+g.dist = daisy(dataMundo[,-1], metric="gower")
+```
+
+
+
+```{r}
+library(fpc)
+pc = pamk(g.dist, krange=1:5, criterion="asw")
+pc$nc
+```
+
+```{r}
+hc.m = hclust(g.dist, method="median")
+hc.s = hclust(g.dist, method="single")
+hc.c = hclust(g.dist, method="complete")
+```
+
+
+
+```{r}
+plot(hc.m)
+```
+
+```{r}
+plot(hc.s)
+```
+
+
+```{r}
+plot(hc.c)
+```
+
+Finally, we can try DBSCAN. This requires specifying two parameters: eps, the 'reachability distance' (how close two observations have to be to be linked together) and minPts (the minimum number of points that need to be connected to each other before you are willing to call them a 'cluster'). A rule of thumb for minPts is to use one more than the number of dimensions (in our case 3+1=4), but having a number that's too small isn't recommended. The default value for dbscan is 5; we'll stick with that. One way to think about the reachability distance is to see what percent of the distances are less than any given value. We can do that by examining the distribution of the distances:
+
+```{r}
+layout(matrix(1:2, nrow=1))
+  plot(density(na.omit(g.dist[upper.tri(g.dist)])), main="kernel density")
+  plot(ecdf(g.dist[upper.tri(g.dist)]), main="ECDF")
+```
+
+```{r}
+dbc3 = dbscan(g.dist, eps=.13, MinPts=5, method="dist");  dbc3
+
+dbc2 = dbscan(g.dist, eps=.135, MinPts=5, method="dist");  dbc2
+
+dbc4 = dbscan(g.dist, eps=.1, MinPts=5, method="dist");  dbc4
+
+```
+
+
+```{r}
+library(factoextra)
+
+factoextra::fviz_cluster(dbc4,data = dataMundo[,-1],geom = "point")
+```
+
+https://towardsdatascience.com/hierarchical-clustering-on-categorical-data-in-r-a27e578f2995
+
+http://www.sthda.com/english/wiki/wiki.php?id_contents=7940
+
+https://github.com/mhahsler/dbscan
+
+https://rpubs.com/kalipradeep/dbscan
+
+https://stats.stackexchange.com/questions/130974/how-to-use-both-binary-and-continuous-variables-together-in-clustering
+
+https://rpkgs.datanovia.com/factoextra/reference/fviz_cluster.html
+
+http://www.sthda.com/english/wiki/print.php?id=246

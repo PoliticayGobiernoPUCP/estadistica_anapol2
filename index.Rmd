@@ -21,7 +21,7 @@
 * [Preparación de tablas de datos](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/FormateoTabla.html)
 
 ### Unidad 2: Descripción Multivariada de Indicadores complejos
-* Conglomeración
+* [Conglomeración]((https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/ClusteringIntro.html))
     - Particionante
     - Aglomerativa y divisiva
     - Basada en densidad
