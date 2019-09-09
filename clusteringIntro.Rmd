@@ -31,19 +31,26 @@ El promedio es una operación aritmética que devuelve un valora partir de otros
 
 Por otro lado, cuando calculamos clusters:
 
-* Usamos mejor toda la información disponible. Es una tecnica multivariada, y tomará en cuenta diversos tipos de datos que no podrían ser _promediables_.
+* **Usamos mejor toda la información disponible**. Es una tecnica multivariada, y tomará en cuenta diversos tipos de datos que no podrían ser _promediables_.
 
-* La operación de promediar se reemplaza por la de encontrar "distancias" entre los casos. La distancia multivariada es la que determina que casos debe agruparse juntos, cómo separarse, y qué casos considerarse singulares. El video siguiente trata de explicar ello:
+* **La operación de promediar se reemplaza por la de encontrar "distancias" entre los casos**. La distancia multivariada es la que determina que casos debe agruparse juntos, cómo separarse, y qué casos considerarse singulares. El video siguiente trata de explicar ello:
 
-<iframe width="800" height="600" src="https://www.youtube.com/watch?v=3MnVCX94jJM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="800" height="600" src="https://www.youtube.com/embed/3MnVCX94jJM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-* Tenemos muchos algoritmos. Para diversas situaciones, tenemos diferentes algoritmos recomendables para encontrar una mejor clusterización. Los algoritmos vistos en este curso corresponden a tres famlias:
+* **Tenemos muchos algoritmos**. Para diversas situaciones, tenemos diferentes algoritmos recomendables para encontrar una mejor clusterización. Los algoritmos vistos en este curso corresponden a tres familias:
+
   - Particionantes.
   - Jerarquizantes.
   - Basados en densidad.
   
   Este video te dará una rápida introducción a ellos (en el curso no vemos todos los tipos):
   
-  <iframe width="800" height="600" src="https://www.youtube.com/watch?v=Se28XHI2_xE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
+<iframe width="800" height="600" src="https://www.youtube.com/embed/Se28XHI2_xE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
