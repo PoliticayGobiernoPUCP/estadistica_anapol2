@@ -31,22 +31,24 @@ El promedio es una operación aritmética que devuelve un valora partir de otros
 
 Por otro lado, cuando calculamos clusters:
 
-* **Usamos mejor toda la información disponible**. Es una tecnica multivariada, y tomará en cuenta diversos tipos de datos que no podrían ser _promediables_.
+* __Usamos mejor toda la información disponible__. Es una tecnica multivariada, y tomará en cuenta diversos tipos de datos que no podrían ser _promediables_.
 
-* **La operación de promediar se reemplaza por la de encontrar "distancias" entre los casos**. La distancia multivariada es la que determina que casos debe agruparse juntos, cómo separarse, y qué casos considerarse singulares. El video siguiente trata de explicar ello:
+* __La operación de promediar se reemplaza por la de encontrar "distancias" entre los casos__. La distancia multivariada es la que determina que casos debe agruparse juntos, cómo separarse, y qué casos considerarse singulares. Para este caso, usaremos la función __daysi__ de la biblioteca __cluster()__. El video siguiente trata de explicar ello:
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/3MnVCX94jJM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-* **Tenemos muchos algoritmos**. Para diversas situaciones, tenemos diferentes algoritmos recomendables para encontrar una mejor clusterización. Los algoritmos vistos en este curso corresponden a tres familias:
+* __Tenemos muchos algoritmos__. Para diversas situaciones, tenemos diferentes algoritmos recomendables para encontrar una mejor clusterización. Los algoritmos vistos en este curso corresponden a tres familias:
 
-  - Particionantes.
-  - Jerarquizantes.
-  - Basados en densidad.
+  - Particionantes (requiere biblioteca **fpc()** o **cluster()**).
+  - Jerarquizantes (requiere biblioteca **cluster()**).
+  - Basados en densidad (requiere biblioteca **fpc()**).
   
   Este video te dará una rápida introducción a ellos (en el curso no vemos todos los tipos):
   
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/Se28XHI2_xE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* __En esencia, estamos reduciendo la alta dimensionalidad__. Un cluster representa lo que el algoritmo pudo hayar al resumir todas las columnas (dimensiones) de cada caso. Esta resultado tiene elementos visuales que pueden representarse facilmente con bibliotecas como la __factoextra()__.
 
 _____
 <br></br>

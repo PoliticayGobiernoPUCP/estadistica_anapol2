@@ -14,89 +14,133 @@ ____
 <center> <header><h2>Análisis de Conglomerados: Estrategia de Partición</h2>  </header></center>
 ____
 
-Como su nombre lo indica, la estrategia de partición busca 
+Como su nombre lo indica, la estrategia de partición busca partir los casos en grupos. El algoritmo básico estable puntos que deben atraer a los casos, tal que estos se separen. Claro está, que estos puntos atractores van moviendose conforme los grupos se van formando, hasta que al final se ha partido todos los casos. 
+
+Hay diversos algoritmos que buscan una implementación de estos principios básicos. El más conocido es el de **K-medias**, pero para ciencias sociales tiene la desventaja que requiere que todas las variables sean numéricas, no siendo muy eficiente ante categorías. Es decir, como mencionamos en la intro, la técnica de *k-means* no usa distancias entre categóricas, sólo entre numéricas ([la distancia _Euclideana_](https://en.wikipedia.org/wiki/Euclidean_distance)).
+
+La alternativa a las necesidades en ciencias sociales es la técnica de **k-medoides**. Esta técnica trabaja muy bien con las distancias euclideas, pero también con otras distancias como la [**Mahattan**](https://en.wikipedia.org/wiki/Taxicab_geometry) (revisar este [debate](https://datascience.stackexchange.com/questions/20075/when-would-one-use-manhattan-distance-as-opposite-to-euclidean-distance)). En particular, usaremos la [distancia Gower](https://www.linkedin.com/pulse/simplifying-gower-coefficient-vineet-tanna) útil para todos tipo de escalas.
+
+El algoritmo de los k-medioides es explicado con detalles en este video:
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/GApaAnGx3Fw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
-```{r}
-lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/finaldemohappyurbanco2.rds"
 
-dataMundo <- readRDS(gzcon(url(lk)))
-```
+Traigamos nuevamente los datos del Democracy Index:
 
 ```{r}
-str(dataMundo)
+# coleccion
+library(htmltab)
+demolink = "https://en.wikipedia.org/wiki/Democracy_Index"
+demopath = '//*[@id="mw-content-text"]/div/table[2]/tbody'
+demo<- htmltab(doc = demolink, which =demopath)
+
+# limpieza
+library(stringr)
+library(magrittr)
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s','',.)
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], trimws,whitespace = "[\\h\\v]") # no blanks
+
+# preparación
+demo=demo[,-c(1)] #sin Rank
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
+
+
+# veamos que tenemos:
+str(demo)
 ```
+
+Recuerda que cuando se usa **as.numeric()** pueden generarse valores perdidos si el texto original no es un número o tiene espacios vacíos. Es mejor quedarse con los valores completos, pero algunas técnicas trabajan bien aun en la presencia de _NA_s. 
+
+Ya sabemos a qué grupo pertenece cada país. Ahora nos toca aplicar la técnica de clusterización para ver qué diferencias obtenemos:
+
+1. **Calcular distancias**:
 
 ```{r}
 library(cluster)
-g.dist = daisy(dataMundo[,-1], metric="gower")
+g.dist = daisy(demo[,-c(1,2,8,9)], metric="gower")
+```
+
+2. **Proponer cantidad de clusters**:
+
+Como ya sabemos cuantos grupos habría, usamos esa cantidad para los clusters.
+
+```{r}
+demo$cluster=pam(g.dist,4,cluster.only = T)
 ```
 
 
 
 ```{r}
-library(fpc)
-pc = pamk(g.dist, krange=1:5, criterion="asw")
-pc$nc
-```
-
-```{r}
-hc.m = hclust(g.dist, method="median")
-hc.s = hclust(g.dist, method="single")
-hc.c = hclust(g.dist, method="complete")
-```
-
-
-
-```{r}
-plot(hc.m)
-```
-
-```{r}
-plot(hc.s)
+library(plyr)
+aggregate(as.matrix(cbind(demo[,-c(1,2,8,9,10)]))~ cluster, data=demo,
+          FUN=plyr::each(MD = median, Media = mean))
 ```
 
 
 ```{r}
-plot(hc.c)
-```
-
-Finally, we can try DBSCAN. This requires specifying two parameters: eps, the 'reachability distance' (how close two observations have to be to be linked together) and minPts (the minimum number of points that need to be connected to each other before you are willing to call them a 'cluster'). A rule of thumb for minPts is to use one more than the number of dimensions (in our case 3+1=4), but having a number that's too small isn't recommended. The default value for dbscan is 5; we'll stick with that. One way to think about the reachability distance is to see what percent of the distances are less than any given value. We can do that by examining the distribution of the distances:
-
-```{r}
-layout(matrix(1:2, nrow=1))
-  plot(density(na.omit(g.dist[upper.tri(g.dist)])), main="kernel density")
-  plot(ecdf(g.dist[upper.tri(g.dist)]), main="ECDF")
+agg=aggregate(as.matrix(cbind(demo[,-c(1,2,8,9,10)]))~ cluster, data=demo,
+          FUN=plyr::each(MD = median, Media = mean))
+tablaResumen=as.data.frame(t(agg))
+tablaResumen
 ```
 
 ```{r}
-dbc3 = dbscan(g.dist, eps=.13, MinPts=5, method="dist");  dbc3
+names(tablaResumen)=tablaResumen[1,]
+tablaResumen=tablaResumen[-1,]
 
-dbc2 = dbscan(g.dist, eps=.135, MinPts=5, method="dist");  dbc2
 
-dbc4 = dbscan(g.dist, eps=.1, MinPts=5, method="dist");  dbc4
-
+library(knitr)
+library(kableExtra)
+kable(tablaResumen, format = "html", digits = 2,col.names=)%>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
+
+
+3. **Visualizar**:
+
+Usemos una tabla de contingencia para verificar la asignación:
+
+```{r}
+table(demo$cluster,demo$Regimetype,dnn = c('cluster','group'))
+```
+
+Nótese que:
+* El cluster 1 ha juntado _todas_ las democracias plenas y ha admitido a 21 de las débiles. 
+* El cluster 2 tiene las democracias débiles restantes y a 12 de las híbridas.
+* El cluster 3 tiene las democracias híbridas restantes y a 9 de las autoritarias.
+* El cluster 4 tiene las 44 de las autoritarias restantes.
 
 
 ```{r}
 library(factoextra)
-
-factoextra::fviz_cluster(dbc4,data = dataMundo[,-1],geom = "point")
+fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
+             geom = c("text"), 
+             ellipse.type = "convex")
 ```
 
-https://towardsdatascience.com/hierarchical-clustering-on-categorical-data-in-r-a27e578f2995
+Los numeros se ven en vez de los nombres de los paises, pero podemos reemplazarlos así:
 
-http://www.sthda.com/english/wiki/wiki.php?id_contents=7940
+```{r}
+# paso clave
+row.names(demo)=demo$Country
 
-https://github.com/mhahsler/dbscan
+# luego lo demás
+g.dist = daisy(demo[,-c(1,8,9)], metric="gower")
+demo$cluster=pam(g.dist,4,cluster.only = T)
+fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
+             geom = c("text"), 
+             ellipse.type = "convex")
+```
 
-https://rpubs.com/kalipradeep/dbscan
+Si deseamos mejor visión:
+```{r}
+library(ggrepel)
 
-https://stats.stackexchange.com/questions/130974/how-to-use-both-binary-and-continuous-variables-together-in-clustering
+fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
+             geom = c("text"), 
+             ellipse.type = "convex",labelsize = 5,
+             repel = T)
 
-https://rpkgs.datanovia.com/factoextra/reference/fviz_cluster.html
+```
 
-http://www.sthda.com/english/wiki/print.php?id=246
