@@ -50,15 +50,17 @@ demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
 str(demo)
 ```
 
-Recuerda que cuando se usa **as.numeric()** pueden generarse valores perdidos si el texto original no es un número o tiene espacios vacíos. Es mejor quedarse con los valores completos, pero algunas técnicas trabajan bien aun en la presencia de _NA_s. 
+Recuerda que cuando se usa **as.numeric()** pueden generarse valores perdidos si el texto original no es un número o tiene espacios vacíos. Es mejor quedarse con los valores completos, pero algunas técnicas trabajan bien aun en la presencia de *NA*s. 
 
-Ya sabemos a qué grupo pertenece cada país. Ahora nos toca aplicar la técnica de clusterización para ver qué diferencias obtenemos:
+Ya sabemos a qué grupo pertenece cada país segun _The Economist_. Ahora nos toca aplicar la técnica de clusterización para ver qué diferencias obtenemos:
 
 1. **Calcular distancias**:
 
 ```{r}
 library(cluster)
-g.dist = daisy(demo[,-c(1,2,8,9)], metric="gower")
+
+# usar en C() las dimensiones de interes:
+g.dist = daisy(demo[,c(3:7)], metric="gower")
 ```
 
 2. **Proponer cantidad de clusters**:
@@ -70,30 +72,38 @@ demo$cluster=pam(g.dist,4,cluster.only = T)
 ```
 
 
+3. **Explorar Resultados**
+
+Aquí corresponde saber las caracteristicas de los paises en cada cluster. Veamos el resultado **preliminar** al aplicar aggregate
 
 ```{r}
-library(plyr)
-aggregate(as.matrix(cbind(demo[,-c(1,2,8,9,10)]))~ cluster, data=demo,
+library(plyr) # para funcion "each"..
+
+# nota el uso de as.matrix con cbind:
+aggregate(as.matrix(cbind(demo[,c(3:7)]))~ cluster, data=demo,
           FUN=plyr::each(MD = median, Media = mean))
 ```
 
+Podemos volver esa tabla resumen un data frame:
 
 ```{r}
-agg=aggregate(as.matrix(cbind(demo[,-c(1,2,8,9,10)]))~ cluster, data=demo,
-          FUN=plyr::each(MD = median, Media = mean))
-tablaResumen=as.data.frame(t(agg))
+# guardando resultado anterior en objeto "agg": 
+agg=aggregate(as.matrix(cbind(demo[,c(3:7)]))~ cluster, 
+              data=demo, # luego las funciones que deseas
+              FUN=plyr::each(MD = median, Media = mean))
+
+# convertir en data frame, y 
+tablaResumen=t(as.data.frame(agg))
 tablaResumen
 ```
 
-```{r}
-names(tablaResumen)=tablaResumen[1,]
-tablaResumen=tablaResumen[-1,]
+Para una mejor presentacion en la web, tienes la funcion **[kable()](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html)**:
 
-
+```{r, eval=TRUE}
 library(knitr)
 library(kableExtra)
-kable(tablaResumen, format = "html", digits = 2,col.names=)%>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
+kable(tablaResumen, format = "html", digits = 2)%>%
+  kable_styling()
 ```
 
 
@@ -106,7 +116,12 @@ table(demo$cluster,demo$Regimetype,dnn = c('cluster','group'))
 ```
 
 Nótese que:
-* El cluster 1 ha juntado _todas_ las democracias plenas y ha admitido a 21 de las débiles. 
+* El cluster 1 ha juntado _todas_ las democracias plenas y ha admitido a 21 de las débiles. Así, dejó entrar a estos paises:
+```{r}
+demo[demo$cluster==1 & demo$Regimetype=="Flawed democracy",'Country']
+```
+
+
 * El cluster 2 tiene las democracias débiles restantes y a 12 de las híbridas.
 * El cluster 3 tiene las democracias híbridas restantes y a 9 de las autoritarias.
 * El cluster 4 tiene las 44 de las autoritarias restantes.
@@ -119,28 +134,37 @@ fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
              ellipse.type = "convex")
 ```
 
-Los numeros se ven en vez de los nombres de los paises, pero podemos reemplazarlos así:
+Los números se ven en vez de los nombres de los países, pero podemos reemplazarlos así:
 
 ```{r}
 # paso clave
 row.names(demo)=demo$Country
 
 # luego lo demás
-g.dist = daisy(demo[,-c(1,8,9)], metric="gower")
+g.dist = daisy(demo[,c(3:7)], metric="gower")
 demo$cluster=pam(g.dist,4,cluster.only = T)
 fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
              geom = c("text"), 
              ellipse.type = "convex")
 ```
 
-Si deseamos mejor visión:
+Si deseamos una mejor gráfica:
+
 ```{r}
 library(ggrepel)
 
 fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
              geom = c("text"), 
-             ellipse.type = "convex",labelsize = 5,
+             ellipse = FALSE,labelsize = 5,
              repel = T)
 
 ```
+
+Nota que esta técnica asignará un cluster a cada elemento.
+
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
 

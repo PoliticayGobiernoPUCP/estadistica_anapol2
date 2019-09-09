@@ -48,7 +48,7 @@ Por otro lado, cuando calculamos clusters:
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/Se28XHI2_xE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-* __En esencia, estamos reduciendo la alta dimensionalidad__. Un cluster representa lo que el algoritmo pudo hayar al resumir todas las columnas (dimensiones) de cada caso. Esta resultado tiene elementos visuales que pueden representarse facilmente con bibliotecas como la __factoextra()__.
+* __En esencia, estamos reduciendo la alta dimensionalidad__. Un cluster representa lo que el algoritmo pudo hayar al resumir todas las columnas (dimensiones) de cada caso. Esta resultado tiene elementos visuales que pueden representarse facilmente con bibliotecas como la __factoextra()__ y el apoyo de la biblioteca __ggrepel()__.
 
 _____
 <br></br>

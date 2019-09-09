@@ -22,7 +22,7 @@
 
 ### Unidad 2: Descripción Multivariada de Indicadores complejos
 * [Conglomeración](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/clusteringIntro.html)
-    - Particionante
+    - [Particionante](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/partition.html)
     - Aglomerativa y divisiva
     - Basada en densidad
 
