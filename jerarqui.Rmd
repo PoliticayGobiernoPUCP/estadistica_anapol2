@@ -1,5 +1,45 @@
 
 
+ Para ellos podemos evaluar cual de ellos seria mejor:
+
+Creemos un vector con algunas técnicas:
+
+```{r}
+library(purrr)
+# vector of methods to compare
+ALL_linkages <- c( "average", "single", "complete", "ward")
+names(ALL_linkages) <- c( "average", "single", "complete", "ward")
+
+# vector:
+ALL_linkages
+```
+
+La función de clusterización aglomerativa a utilizar es **agnes**. Cuando se aplica, tiene un elemento *ac* que informa qué tan bien se ha clusterizado. Voy a crear una función que me devuelva el _ac_ de cada linkage:
+
+```{r}
+# función que devuelve el ajuste:
+GET_ac <- function(oneLinkage) {
+  agnes(g.dist, method = oneLinkage)$ac
+}
+```
+
+Ahora aplico cada _linkage_ a esa función para ir obteniendo los _ac_.
+```{r}
+# aplicando función 
+map_dbl(ALL_linkages, GET_ac)
+```
+
+Para hacerlo facil, puedo ordenar resultado anterior:
+
+```{r}
+sort(map_dbl(ALL_linkages, GET_ac))
+```
+
+
+
+
+
+
 ```{r, eval=FALSE}
 lk="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/finaldemohappyurbanco2.rds"
 

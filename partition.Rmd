@@ -52,7 +52,24 @@ str(demo)
 
 Recuerda que cuando se usa **as.numeric()** pueden generarse valores perdidos si el texto original no es un número o tiene espacios vacíos. Es mejor quedarse con los valores completos, pero algunas técnicas trabajan bien aun en la presencia de *NA*s. 
 
-Ya sabemos a qué grupo pertenece cada país segun _The Economist_. Ahora nos toca aplicar la técnica de clusterización para ver qué diferencias obtenemos:
+Ya sabemos a qué grupo pertenece cada país segun _The Economist_. Ahora nos toca aplicar la técnica de clusterización para ver qué diferencias obtenemos.
+
+Como pasos previo, hagamos dos cosas:
+
+* Los nombres de cada caso aparezcan en las gráficas:
+```{r}
+row.names(demo)=demo$Country
+```
+
+* Solo trabajemos con data sin valores perdidos:
+
+```{r}
+# alternativa a complete.cases:
+demo=na.omit(demo)
+```
+
+Ahora podemos continuar:
+
 
 1. **Calcular distancias**:
 
@@ -68,19 +85,19 @@ g.dist = daisy(demo[,c(3:7)], metric="gower")
 Como ya sabemos cuantos grupos habría, usamos esa cantidad para los clusters.
 
 ```{r}
-demo$cluster=pam(g.dist,4,cluster.only = T)
+demo$clusterPT=pam(g.dist,4,cluster.only = T)
 ```
 
 
 3. **Explorar Resultados**
 
-Aquí corresponde saber las caracteristicas de los paises en cada cluster. Veamos el resultado **preliminar** al aplicar aggregate
+Aquí corresponde saber las caracteristicas de los paises en cada cluster. Veamos el resultado **preliminar** al aplicar **aggregate** con la función **each** (esta última está en la biblioteca *plyr*):
 
 ```{r}
 library(plyr) # para funcion "each"..
 
 # nota el uso de as.matrix con cbind:
-aggregate(as.matrix(cbind(demo[,c(3:7)]))~ cluster, data=demo,
+aggregate(as.matrix(cbind(demo[,c(3:7)]))~ clusterPT, data=demo,
           FUN=plyr::each(MD = median, Media = mean))
 ```
 
@@ -88,7 +105,7 @@ Podemos volver esa tabla resumen un data frame:
 
 ```{r}
 # guardando resultado anterior en objeto "agg": 
-agg=aggregate(as.matrix(cbind(demo[,c(3:7)]))~ cluster, 
+agg=aggregate(as.matrix(cbind(demo[,c(3:7)]))~ clusterPT, 
               data=demo, # luego las funciones que deseas
               FUN=plyr::each(MD = median, Media = mean))
 
@@ -106,19 +123,18 @@ kable(tablaResumen, format = "html", digits = 2)%>%
   kable_styling()
 ```
 
-
-4. **Visualizar**:
+4. **Comparar**
 
 Usemos una tabla de contingencia para verificar la asignación:
 
 ```{r}
-table(demo$cluster,demo$Regimetype,dnn = c('cluster','group'))
+table(demo$clusterPT,demo$Regimetype,dnn = c('clusterPT','TipoEconomist'))
 ```
 
 Nótese que:
 * El cluster 1 ha juntado _todas_ las democracias plenas y ha admitido a 21 de las débiles. Así, dejó entrar a estos paises:
 ```{r}
-demo[demo$cluster==1 & demo$Regimetype=="Flawed democracy",'Country']
+demo[demo$clusterPT==1 & demo$Regimetype=="Flawed democracy",'Country']
 ```
 
 
@@ -127,33 +143,24 @@ demo[demo$cluster==1 & demo$Regimetype=="Flawed democracy",'Country']
 * El cluster 4 tiene las 44 de las autoritarias restantes.
 
 
+5. **Visualizar**:
+
+Veamos lo obtenido:
+
 ```{r}
 library(factoextra)
-fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
+fviz_cluster(object = list(data=g.dist, cluster = demo$clusterPT),
              geom = c("text"), 
              ellipse.type = "convex")
 ```
 
-Los números se ven en vez de los nombres de los países, pero podemos reemplazarlos así:
-
-```{r}
-# paso clave
-row.names(demo)=demo$Country
-
-# luego lo demás
-g.dist = daisy(demo[,c(3:7)], metric="gower")
-demo$cluster=pam(g.dist,4,cluster.only = T)
-fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
-             geom = c("text"), 
-             ellipse.type = "convex")
-```
 
 Si deseamos una mejor gráfica:
 
 ```{r}
 library(ggrepel)
 
-fviz_cluster(object = list(data=g.dist, cluster = demo$cluster),
+fviz_cluster(object = list(data=g.dist, cluster = demo$clusterPT),
              geom = c("text"), 
              ellipse = FALSE,labelsize = 5,
              repel = T)

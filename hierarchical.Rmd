@@ -80,48 +80,49 @@ g.dist = daisy(demo[,c(3:7)], metric="gower")
 
 2. Decidir _linkages_
 
-Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Creemos un vector con algunas técnicas:
+Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Revisa los tres mas simples metodos:
 
-```{r}
-library(purrr)
-# vector of methods to compare
-ALL_linkages <- c( "average", "single", "complete", "ward")
-names(ALL_linkages) <- c( "average", "single", "complete", "ward")
+* Linkage tipo **SINGLE**:
 
-# vector:
-ALL_linkages
-```
+<iframe width="800" height="600"  src="https://www.youtube.com/embed/RdT7bhm1M3E" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-La función de clusterización aglomerativa a utilizar es **agnes**. Cuando se aplica, tiene un elemento *ac* que informa qué tan bien se ha clusterizado. Voy a crear una función que me devuelva el _ac_ de cada linkage:
 
-```{r}
-# función que devuelve el ajuste:
-GET_ac <- function(oneLinkage) {
-  agnes(g.dist, method = oneLinkage)$ac
-}
-```
 
-Ahora aplico cada _linkage_ a esa función para ir obteniendo los _ac_.
-```{r}
-# aplicando función 
-map_dbl(ALL_linkages, GET_ac)
-```
+* Linkage tipo **COMPLETE**:
 
-Para hacerlo facil, puedo ordenar resultado anterior:
+<iframe width="800" height="600"  src="https://www.youtube.com/embed/Cy3ci0Vqs3Y" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-```{r}
-sort(map_dbl(ALL_linkages, GET_ac))
-```
+
+
+* Linkage tipo **AVERAGE**:
+
+<iframe width="800" height="600"  src="https://www.youtube.com/embed/T1ObCUpjq3o" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+Otro metodo adicional, y muy eficiente, es el de **Ward**. Al final, lo que necesitamos saber cual de ellos nos entregará una mejor propuesta de clusters. Usemos este para nuestro caso.
+
 
 * 3. Calcular clusters
 
+La función hcut
+
 ```{r}
+
 library(factoextra)
 
 res <- hcut(g.dist, k = 4,hc_func='agnes',hc_method = "ward.D")
 
 demo$clustAG=res$cluster
 
+```
+```{r}
+res$silinfo
+```
+
+* 4. Comparar
+
+```{r}
+table(demo$Regimetype,demo$clustAG,dnn = c('TipoEconomist','clustAgg'))
 ```
 
 
@@ -133,6 +134,7 @@ fviz_dend(res, rect = TRUE, cex = 0.5,
           k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
 ```
 
+
 ## Estrategia Divisiva:
 
 ```{r}
@@ -142,9 +144,31 @@ demo$clustDIV=resDIV$cluster
  
 ```
 
+```{r}
+table(demo$Regimetype,demo$clustDIV,dnn = c('TipoEconomist','clustDiv'))
+```
+
+
+```{r}
+table(demo$clustDIV,demo$clustAG,dnn = c('clustDiv','clustAgg'))
+```
+
+```{r}
+demo$clusterPT=pam(g.dist,4,cluster.only = T)
+```
+
+```{r}
+table(demo$clustDIV,demo$clusterPT,dnn = c('clustDiv','clustPT'))
+```
+
+```{r}
+table(demo$clustAG,demo$clusterPT,dnn = c('clustAg','clustPT'))
+```
 
 ```{r}
 # Visualize
 fviz_dend(resDIV, rect = TRUE, cex = 0.5,
           k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
 ```
+
+Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster.
