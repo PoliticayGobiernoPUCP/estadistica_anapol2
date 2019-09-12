@@ -1,0 +1,150 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Análisis de Conglomerados: Estrategia de Jerarquizacion</h2>  </header></center>
+____
+
+La jerarquización busca clusterizar por etapas, hasta que todas las posibilidades de clusterizacion sean visible. Este enfoque tiene dos familias de algoritmos:
+
+* Aglomerativos
+* Divisivos
+
+Aquí hay un resumen breve del tema:
+
+<iframe width="800" height="600" src="https://www.youtube.com/embed/2z5wwyv0Zk4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+## Estrategia Aglomerativa
+
+En esta estrategia se parte por considerar cada caso (fila) como un cluster, para de ahi ir creando miniclusters hasta que todos los casos sean un solo cluster. El proceso va mostrando que tanto _esfuerzo_ toma juntar los elementos cluster tras cluster.
+
+
+```{r}
+# coleccion
+library(htmltab)
+demolink = "https://en.wikipedia.org/wiki/Democracy_Index"
+demopath = '//*[@id="mw-content-text"]/div/table[2]/tbody'
+demo<- htmltab(doc = demolink, which =demopath)
+
+# limpieza
+library(stringr)
+library(magrittr)
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s','',.)
+
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], trimws,whitespace = "[\\h\\v]") # no blanks
+
+# preparación
+demo=demo[,-c(1)] #sin Rank
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
+
+
+# veamos que tenemos:
+str(demo)
+```
+
+Antes de proseguir, nos aseguramos que:
+
+* Los nombres de cada caso aparezcan en las gráficas:
+```{r}
+row.names(demo)=demo$Country
+```
+
+* Solo trabajemos con data sin valores perdidos:
+
+```{r}
+# alternativa a complete.cases:
+demo=na.omit(demo)
+```
+
+Ahora podemos continuar:
+
+1. **Calcular distancias**:
+
+El primer paso es calcular distancias:
+
+```{r}
+library(cluster)
+
+g.dist = daisy(demo[,c(3:7)], metric="gower")
+```
+
+2. Decidir _linkages_
+
+Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Creemos un vector con algunas técnicas:
+
+```{r}
+library(purrr)
+# vector of methods to compare
+ALL_linkages <- c( "average", "single", "complete", "ward")
+names(ALL_linkages) <- c( "average", "single", "complete", "ward")
+
+# vector:
+ALL_linkages
+```
+
+La función de clusterización aglomerativa a utilizar es **agnes**. Cuando se aplica, tiene un elemento *ac* que informa qué tan bien se ha clusterizado. Voy a crear una función que me devuelva el _ac_ de cada linkage:
+
+```{r}
+# función que devuelve el ajuste:
+GET_ac <- function(oneLinkage) {
+  agnes(g.dist, method = oneLinkage)$ac
+}
+```
+
+Ahora aplico cada _linkage_ a esa función para ir obteniendo los _ac_.
+```{r}
+# aplicando función 
+map_dbl(ALL_linkages, GET_ac)
+```
+
+Para hacerlo facil, puedo ordenar resultado anterior:
+
+```{r}
+sort(map_dbl(ALL_linkages, GET_ac))
+```
+
+* 3. Calcular clusters
+
+```{r}
+library(factoextra)
+
+res <- hcut(g.dist, k = 4,hc_func='agnes',hc_method = "ward.D")
+
+demo$clustAG=res$cluster
+
+```
+
+
+* 4. Visualizar
+
+```{r}
+# Visualize
+fviz_dend(res, rect = TRUE, cex = 0.5,
+          k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
+```
+
+## Estrategia Divisiva:
+
+```{r}
+resDIV <- hcut(g.dist, k = 4,hc_func='diana')
+
+demo$clustDIV=resDIV$cluster
+ 
+```
+
+
+```{r}
+# Visualize
+fviz_dend(resDIV, rect = TRUE, cex = 0.5,
+          k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
+```

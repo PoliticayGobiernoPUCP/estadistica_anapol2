@@ -107,7 +107,7 @@ kable(tablaResumen, format = "html", digits = 2)%>%
 ```
 
 
-3. **Visualizar**:
+4. **Visualizar**:
 
 Usemos una tabla de contingencia para verificar la asignación:
 
