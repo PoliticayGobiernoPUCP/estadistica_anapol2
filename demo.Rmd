@@ -1,0 +1,94 @@
+
+
+
+
+```{r}
+# coleccion
+library(htmltab)
+demolink = "https://en.wikipedia.org/wiki/Democracy_Index"
+demopath = '//*[@id="mw-content-text"]/div/table[2]/tbody'
+demo<- htmltab(doc = demolink, which =demopath)
+```
+
+
+```{r}
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s','',.)
+```
+```{r}
+str(demo)
+```
+
+
+```{r}
+
+
+# limpieza
+library(stringr)
+library(magrittr)
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s','',.)
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], trimws,whitespace = "[\\h\\v]") # no blanks
+
+# preparación
+demo=demo[,-c(1)] #sin Rank
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
+
+
+# veamos que tenemos:
+str(demo)
+```
+
+```{r}
+row.names(demo)=demo$Country
+```
+
+
+```{r}
+library(cluster)
+g.dist = daisy(demo[,c(3:7)], metric="gower")
+```
+
+
+
+
+
+
+
+```{r}
+table(demo$clusterPT,demo$Regimetype,dnn = c('clusterPT','TipoEconomist'))
+```
+
+```{r}
+demo[demo$clusterPT==1 & demo$Regimetype=="Flawed democracy",'Country']
+```
+
+
+
+
+
+```{r}
+demo$clusterPT=pam(g.dist,4,cluster.only = T)
+```
+
+
+```{r}
+library(factoextra)
+fviz_cluster(object = list(data=g.dist, cluster = demo$clusterPT),
+             geom = c("text"), 
+             ellipse.type = "convex")
+```
+
+
+
+```{r}
+library(plyr) # para funcion "each"..
+
+# nota el uso de as.matrix con cbind:
+a=aggregate(as.matrix(cbind(demo[,c(3:7)]))~ clusterPT, data=demo,
+          FUN=plyr::each(MD = median, Media = mean))
+```
+
+
+```{r}
+a
+```
+
