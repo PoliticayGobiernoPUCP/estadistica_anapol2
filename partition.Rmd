@@ -85,7 +85,9 @@ g.dist = daisy(demo[,c(3:7)], metric="gower")
 Como ya sabemos cuantos grupos habría, usamos esa cantidad para los clusters.
 
 ```{r}
-demo$clusterPT=pam(g.dist,4,cluster.only = T)
+pam.resultado=pam(g.dist,4,cluster.only = F)
+
+demo$clusterPT=pam.resultado$cluster
 ```
 
 
