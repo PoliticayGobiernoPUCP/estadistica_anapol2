@@ -456,46 +456,211 @@ g.dist = daisy(demo[,c(3:7)], metric=&quot;gower&quot;)</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Decidir <em>linkages</em></li>
 </ol>
-<p>Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Creemos un vector con algunas técnicas:</p>
-<pre class="r"><code>library(purrr)</code></pre>
-<pre><code>## 
-## Attaching package: 'purrr'</code></pre>
-<pre><code>## The following object is masked from 'package:magrittr':
-## 
-##     set_names</code></pre>
-<pre class="r"><code># vector of methods to compare
-ALL_linkages &lt;- c( &quot;average&quot;, &quot;single&quot;, &quot;complete&quot;, &quot;ward&quot;)
-names(ALL_linkages) &lt;- c( &quot;average&quot;, &quot;single&quot;, &quot;complete&quot;, &quot;ward&quot;)
-
-# vector:
-ALL_linkages</code></pre>
-<pre><code>##    average     single   complete       ward 
-##  &quot;average&quot;   &quot;single&quot; &quot;complete&quot;     &quot;ward&quot;</code></pre>
-<p>La función de clusterización aglomerativa a utilizar es <strong>agnes</strong>. Cuando se aplica, tiene un elemento <em>ac</em> que informa qué tan bien se ha clusterizado. Voy a crear una función que me devuelva el <em>ac</em> de cada linkage:</p>
-<pre class="r"><code># función que devuelve el ajuste:
-GET_ac &lt;- function(oneLinkage) {
-  agnes(g.dist, method = oneLinkage)$ac
-}</code></pre>
-<p>Ahora aplico cada <em>linkage</em> a esa función para ir obteniendo los <em>ac</em>.</p>
-<pre class="r"><code># aplicando función 
-map_dbl(ALL_linkages, GET_ac)</code></pre>
-<pre><code>##   average    single  complete      ward 
-## 0.8757175 0.6483689 0.9439608 0.9845112</code></pre>
-<p>Para hacerlo facil, puedo ordenar resultado anterior:</p>
-<pre class="r"><code>sort(map_dbl(ALL_linkages, GET_ac))</code></pre>
-<pre><code>##    single   average  complete      ward 
-## 0.6483689 0.8757175 0.9439608 0.9845112</code></pre>
+<p>Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Revisa los tres mas simples metodos:</p>
+<ul>
+<li>Linkage tipo <strong>SINGLE</strong>:</li>
+</ul>
+<iframe width="800" height="600" src="https://www.youtube.com/embed/RdT7bhm1M3E" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+<ul>
+<li>Linkage tipo <strong>COMPLETE</strong>:</li>
+</ul>
+<iframe width="800" height="600" src="https://www.youtube.com/embed/Cy3ci0Vqs3Y" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+<ul>
+<li>Linkage tipo <strong>AVERAGE</strong>:</li>
+</ul>
+<iframe width="800" height="600" src="https://www.youtube.com/embed/T1ObCUpjq3o" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+<p>Otro metodo adicional, y muy eficiente, es el de <strong>Ward</strong>. Al final, lo que necesitamos saber cual de ellos nos entregará una mejor propuesta de clusters. Usemos este para nuestro caso.</p>
 <ul>
 <li><ol start="3" style="list-style-type: decimal">
 <li>Calcular clusters</li>
 </ol></li>
 </ul>
+<p>La función hcut</p>
 <pre class="r"><code>library(factoextra)</code></pre>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre><code>## Welcome! Related Books: `Practical Guide To Cluster Analysis in R` at https://goo.gl/13EFCZ</code></pre>
 <pre class="r"><code>res &lt;- hcut(g.dist, k = 4,hc_func='agnes',hc_method = &quot;ward.D&quot;)
 
 demo$clustAG=res$cluster</code></pre>
+<pre class="r"><code>res$silinfo</code></pre>
+<pre><code>## $widths
+##                                  cluster neighbor   sil_width
+## Germany                                1        2  0.57648052
+## Netherlands                            1        2  0.57424328
+## Finland                                1        2  0.56419424
+## United Kingdom                         1        2  0.56132246
+## Australia                              1        2  0.55673948
+## Switzerland                            1        2  0.55475333
+## Denmark                                1        2  0.54794960
+## Canada                                 1        2  0.54635119
+## Luxembourg                             1        2  0.53983426
+## New Zealand                            1        2  0.53644170
+## Sweden                                 1        2  0.52552556
+## Austria                                1        2  0.52386037
+## Ireland                                1        2  0.52040588
+## Costa Rica                             1        2  0.51708658
+## Iceland                                1        2  0.51296541
+## Uruguay                                1        2  0.51259909
+## Malta                                  1        2  0.48866681
+## Spain                                  1        2  0.48213390
+## Norway                                 1        2  0.47227633
+## Mauritius                              1        2  0.47020054
+## Estonia                                1        2  0.46824882
+## Japan                                  1        2  0.45590057
+## South Korea                            1        2  0.45184274
+## Chile                                  1        2  0.44845666
+## Portugal                               1        2  0.44228349
+## Cape Verde                             1        2  0.43849039
+## United States                          1        2  0.42321976
+## Botswana                               1        2  0.41719406
+## Belgium                                1        2  0.38118388
+## Czech Republic                         1        2  0.33716443
+## Taiwan                                 1        2  0.29700485
+## France                                 1        2  0.29586633
+## Cyprus                                 1        2  0.24907484
+## Italy                                  1        2  0.23800701
+## Israel                                 1        2  0.23735809
+## Lithuania                              1        2  0.16204322
+## Slovenia                               1        2  0.15021098
+## Latvia                                 1        2  0.14681873
+## Greece                                 1        2  0.03633131
+## Jamaica                                1        2  0.01888343
+## Timor-Leste                            1        2 -0.01982095
+## South Africa                           1        2 -0.13407653
+## Slovakia                               1        2 -0.15631133
+## Colombia                               1        2 -0.16483165
+## Trinidad and Tobago                    1        2 -0.16933368
+## India                                  1        2 -0.19712814
+## Argentina                              1        2 -0.25314252
+## Serbia                                 2        3  0.54030843
+## Dominican Republic                     2        1  0.53916885
+## Mongolia                               2        1  0.53617708
+## Guyana                                 2        1  0.51179899
+## Ecuador                                2        3  0.50872050
+## Croatia                                2        1  0.50749136
+## Romania                                2        1  0.48902988
+## Paraguay                               2        3  0.47968357
+## Poland                                 2        1  0.46879970
+## Philippines                            2        1  0.46782568
+## Lesotho                                2        1  0.44801248
+## Peru                                   2        1  0.43046974
+## Ghana                                  2        1  0.41666674
+## Mexico                                 2        3  0.39429621
+## Hungary                                2        1  0.38179578
+## El Salvador                            2        3  0.36594040
+## Suriname                               2        1  0.35248576
+## North Macedonia                        2        3  0.34436699
+## Moldova                                2        3  0.31573234
+## Brazil                                 2        1  0.30921479
+## Albania                                2        3  0.30875841
+## Panama                                 2        1  0.30351903
+## Namibia                                2        3  0.30093017
+## Bolivia                                2        3  0.28297178
+## Bulgaria                               2        1  0.27712673
+## Montenegro                             2        3  0.25176328
+## Sri Lanka                              2        3  0.23696285
+## Indonesia                              2        3  0.22410934
+## Papua New Guinea                       2        3  0.20632659
+## Senegal                                2        3  0.19737859
+## Tunisia                                2        3  0.17681694
+## Singapore                              2        1  0.17100725
+## Malaysia                               2        1  0.15201052
+## Hong Kong                              2        1  0.08537894
+## Burkina Faso                           3        2  0.43429404
+## Morocco                                3        2  0.38513085
+## Haiti                                  3        2  0.37994959
+## Nigeria                                3        2  0.37375053
+## Sierra Leone                           3        2  0.35386142
+## Uganda                                 3        2  0.33985302
+## Madagascar                             3        2  0.28095159
+## Gambia                                 3        4  0.27939295
+## Thailand                               3        2  0.27882215
+## Malawi                                 3        2  0.24871095
+## Pakistan                               3        2  0.24510199
+## Nepal                                  3        2  0.23426548
+## Turkey                                 3        4  0.21876618
+## Ivory Coast                            3        4  0.21125908
+## Tanzania                               3        2  0.20649494
+## Mali                                   3        2  0.18473114
+## Zambia                                 3        2  0.17880205
+## Kyrgyzstan                             3        2  0.15930273
+## Kenya                                  3        2  0.15371741
+## Armenia                                3        2  0.15002713
+## Liberia                                3        2  0.13522537
+## Niger                                  3        4  0.12817163
+## Bosnia and Herzegovina                 3        2  0.11727642
+## Jordan                                 3        4  0.06700382
+## Ukraine                                3        2  0.04495661
+## Kuwait                                 3        4 -0.01701797
+## Bhutan                                 3        2 -0.01780629
+## Benin                                  3        2 -0.03009345
+## Myanmar                                3        4 -0.04918548
+## Georgia                                3        2 -0.06171765
+## Bangladesh                             3        2 -0.10542787
+## Fiji                                   3        2 -0.10870348
+## Honduras                               3        2 -0.14274647
+## Guatemala                              3        2 -0.17803544
+## Sudan                                  4        3  0.56572549
+## Equatorial Guinea                      4        3  0.55941978
+## Uzbekistan                             4        3  0.55648867
+## Turkmenistan                           4        3  0.54880338
+## Burundi                                4        3  0.54577018
+## Chad                                   4        3  0.53935175
+## Democratic Republic of the Congo       4        3  0.53783014
+## Yemen                                  4        3  0.52651691
+## Syria                                  4        3  0.52588228
+## Libya                                  4        3  0.52246019
+## Saudi Arabia                           4        3  0.51948757
+## Djibouti                               4        3  0.50806924
+## Laos                                   4        3  0.50548841
+## Azerbaijan                             4        3  0.50448614
+## Tajikistan                             4        3  0.49780365
+## Bahrain                                4        3  0.49763811
+## Guinea-Bissau                          4        3  0.49657887
+## Kazakhstan                             4        3  0.48850119
+## Eritrea                                4        3  0.47265513
+## Iran                                   4        3  0.45445005
+## United Arab Emirates                   4        3  0.45435565
+## Zimbabwe                               4        3  0.44936461
+## North Korea                            4        3  0.44910286
+## Belarus                                4        3  0.44413539
+## Vietnam                                4        3  0.44152386
+## Cuba                                   4        3  0.43498097
+## Eswatini                               4        3  0.42419844
+## Central African Republic               4        3  0.41140661
+## Venezuela                              4        3  0.40785983
+## Ethiopia                               4        3  0.35517461
+## Oman                                   4        3  0.34630857
+## Togo                                   4        3  0.34419381
+## Russia                                 4        3  0.32796864
+## Qatar                                  4        3  0.30950881
+## Angola                                 4        3  0.29970873
+## Cameroon                               4        3  0.29768953
+## China                                  4        3  0.29618359
+## Algeria                                4        3  0.28454009
+## Guinea                                 4        3  0.27971770
+## Rwanda                                 4        3  0.27768276
+## Republic of the Congo                  4        3  0.26143045
+## Gabon                                  4        3  0.24857829
+## Afghanistan                            4        3  0.24832921
+## Cambodia                               4        3  0.23158729
+## Nicaragua                              4        3  0.19733008
+## Egypt                                  4        3  0.18413277
+## Mozambique                             4        3  0.08261817
+## Comoros                                4        3 -0.02766990
+## Palestine                              4        3 -0.03731386
+## Iraq                                   4        3 -0.08707599
+## Mauritania                             4        3 -0.08890957
+## Lebanon                                4        3 -0.23353233
+## 
+## $clus.avg.widths
+## [1] 0.3315951 0.3524425 0.1493849 0.3593946
+## 
+## $avg.width
+## [1] 0.3073989</code></pre>
 <ul>
 <li><ol start="4" style="list-style-type: decimal">
 <li>Comparar</li>
