@@ -131,7 +131,34 @@ La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los
 
 
 ```{r}
-library(dbs)
+library(dbscan)
+kNNdistplot(g.dist, k=4)
 ```
+```{r, eval=FALSE}
+library(fpc)
+db.res = dbscan(g.dist, eps=.09, MinPts=15,method = 'dist');  db.res
+```
+
+```{r}
+str(db.res)
+```
+
+```{r, eval=FALSE}
+
+factoextra::fviz_cluster(db.res,data = demo[,c(3:7)], ellipse = F,geom = 'point')
+```
+
+```{r}
+hullplot(demo[,c(3:7)],db.res$cluster)
+```
+```{r}
+res <- optics(g.dist, minPts = 10)
+plot(res)
+```
+```{r}
+res <- extractDBSCAN(res, eps_cl = .0)
+hullplot(demo[,c(3:7)],res = demo$Country)
+```
+
 
 Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
