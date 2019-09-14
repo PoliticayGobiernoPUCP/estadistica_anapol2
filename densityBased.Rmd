@@ -1,0 +1,137 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Análisis de Conglomerados: Estrategia Basada en Densidad</h2>  </header></center>
+____
+
+Hasta ahora hemos encontrado clusters indicando cuantos se necesitaban, e indirectamente hemos forzado a que cada caso sea parte de uno de esos clusters. Veamos la data nuevamente:
+
+
+```{r, warning=FALSE, message=FALSE}
+# bibliotecas:
+library(stringr,magrittr,htmltab)
+
+# coleccion
+links=list(web="https://en.wikipedia.org/wiki/Democracy_Index",
+           xpath ='//*[@id="mw-content-text"]/div/table[2]/tbody')
+demo<- htmltab(doc = links$web, which =links$xpath)
+
+# limpieza
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]%>%gsub('\\s','',.)
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], trimws,whitespace = "[\\h\\v]")
+
+# preparación
+demo=demo[,-c(1)] #sin Rank
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
+row.names(demo)=demo$Country
+demo=na.omit(demo)
+
+# veamos que tenemos:
+str(demo)
+```
+
+Nuestro punto de partida clave siempre ha sido el cálculo de la matriz de distancias, añadamos la semilla aleatoria:
+```{r}
+set.seed(2019) 
+g.dist = cluster::daisy(demo[,c(3:7)], metric="gower")
+```
+
+
+Y con esta matriz calculamos cuatro clusters, pero tal cantidad de clusters salió de una decisión algo arbitraria. Una pregunta exploratoria clave era cuántos clusters deberíamos calcular, y según ellos saber qué hay una cantidad diferenciada de perfiles. Veamos:
+
+* Clusters recomendados para partición 
+
+```{r}
+fviz_nbclust(demo[,c(3:7)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+* Clusters recomendados para jerarquización:
+
+```{r}
+fviz_nbclust(demo[,c(3:7)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+```{r}
+pam.resultado7=pam(g.dist,7,cluster.only = F)
+pam.resultado6=pam(g.dist,6,cluster.only = F)
+res.agnes<- hcut(g.dist, k = 6,hc_func='agnes',hc_method = "ward.D")
+res.diana <- hcut(g.dist, k = 6,hc_func='diana')
+
+```
+
+```{r}
+fviz_silhouette(pam.resultado7)
+```
+
+```{r}
+silPAM7 <- pam.resultado7$silinfo$widths
+neg_sil7 <- which(silPAM7[, 'sil_width'] < 0)
+silPAM7[neg_sil7,];length(neg_sil7)
+```
+
+
+```{r}
+fviz_silhouette(pam.resultado6)
+```
+
+```{r}
+silPAM6 <- pam.resultado6$silinfo$widths
+neg_sil6 <- which(silPAM6[, 'sil_width'] < 0)
+silPAM6[neg_sil6,];length(neg_sil6)
+```
+
+
+```{r}
+intersect(names(neg_sil6_index),names(neg_sil7_index))
+```
+
+```{r}
+setdiff(names(neg_sil6_index),names(neg_sil7_index))
+setdiff(names(neg_sil7_index),names(neg_sil6_index))
+```
+
+
+```{r}
+fviz_silhouette(res.agnes)
+```
+
+```{r}
+silAg <- res.agnes$silinfo$widths
+neg_silAg <- which(silAg[, 'sil_width'] < 0)
+silAg[neg_silAg,];length(neg_silAg)
+```
+
+```{r}
+fviz_silhouette(res.diana)
+```
+
+```{r}
+silDi <- res.diana$silinfo$widths
+neg_silDi <- which(silDi[, 'sil_width'] < 0)
+silDi[neg_silDi,];length(neg_silDi)
+```
+
+
+
+La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los casos cuya cercanía entre sí los diferencia de otros. Aquí hay un resumen breve del tema:
+
+<iframe width="800" height="600" src="https://www.youtube.com/embed/a69-jHtawEo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+
+```{r}
+library(dbs)
+```
+
+Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 

@@ -21,15 +21,14 @@ La jerarquización busca clusterizar por etapas, hasta que todas las posibilidad
 
 Aquí hay un resumen breve del tema:
 
-<iframe width="800" height="600" src="https://www.youtube.com/embed/2z5wwyv0Zk4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
+<iframe width="800" height="600" src="https://www.youtube.com/embed/d1teghNuOu8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Estrategia Aglomerativa
 
 En esta estrategia se parte por considerar cada caso (fila) como un cluster, para de ahi ir creando miniclusters hasta que todos los casos sean un solo cluster. El proceso va mostrando que tanto _esfuerzo_ toma juntar los elementos cluster tras cluster.
 
 
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # coleccion
 library(htmltab)
 demolink = "https://en.wikipedia.org/wiki/Democracy_Index"
@@ -55,121 +54,112 @@ str(demo)
 Antes de proseguir, nos aseguramos que:
 
 * Los nombres de cada caso aparezcan en las gráficas:
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 row.names(demo)=demo$Country
 ```
 
 * Solo trabajemos con data sin valores perdidos:
 
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # alternativa a complete.cases:
 demo=na.omit(demo)
 ```
 
 Ahora podemos continuar:
 
-1. **Calcular distancias**:
+### 1. Calcular distancias
 
 El primer paso es calcular distancias:
 
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 library(cluster)
 
 g.dist = daisy(demo[,c(3:7)], metric="gower")
 ```
 
-2. Decidir _linkages_
+### 2. Decidir _linkages_
 
-Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Revisa los tres mas simples metodos:
+Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Los tres mas simples metodos:
 
-* Linkage tipo **SINGLE**:
+* Linkage tipo <a href="https://www.youtube.com/embed/RdT7bhm1M3E" target="_blank">SINGLE</a>.
 
-<iframe width="800" height="600"  src="https://www.youtube.com/embed/RdT7bhm1M3E" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+* Linkage tipo <a href="https://www.youtube.com/embed/Cy3ci0Vqs3Y" target="_blank">COMPLETE</a>.
 
-
-
-* Linkage tipo **COMPLETE**:
-
-<iframe width="800" height="600"  src="https://www.youtube.com/embed/Cy3ci0Vqs3Y" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
-
-
-* Linkage tipo **AVERAGE**:
-
-<iframe width="800" height="600"  src="https://www.youtube.com/embed/T1ObCUpjq3o" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+* Linkage tipo <a href="https://www.youtube.com/embed/T1ObCUpjq3o" target="_blank">AVERAGE</a>
 
 
 Otro metodo adicional, y muy eficiente, es el de **Ward**. Al final, lo que necesitamos saber cual de ellos nos entregará una mejor propuesta de clusters. Usemos este para nuestro caso.
 
 
-* 3. Calcular clusters
+### 3. Calcular clusters
 
 La función **hcut** es la que usaremos para el método jerarquico, y el algoritmo aglomerativo se emplea usando **agnes**. El linkage será **ward** (aquí _ward.D_):
 
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 
 library(factoextra)
 
-res.agnes <- hcut(g.dist, k = 4,hc_func='agnes',hc_method = "ward.D")
+res.agnes<- hcut(g.dist, k = 4,hc_func='agnes',hc_method = "ward.D")
 
 demo$clustAG=res.agnes$cluster
 
 ```
 
 
-* 4. Comparar
 
-```{r}
-table(demo$Regimetype,demo$clustAG,dnn = c('TipoEconomist','clustAgg'))
+### 4. Comparar
+
+Veamos qué tanto se parece a la clasifición de _The Economist_:
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+table(demo$Regimetype,demo$clustAG,dnn = c('TheEconomist','clustAgg'))
 ```
 
 
-* 4. Visualizar
+### 5. Visualizar
 
 El **dendograma** nos muestra el proceso de conglomeración:
 
-```{r}
+```{r, fig.width=20, fig.height=20 , warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # Visualize
-fviz_dend(res.agnes, rect = TRUE, cex = 0.5,
-          k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
+fviz_dend(res.agnes,k=4, cex = 0.7, horiz = T)
 ```
 
-La altura nos muestra el costo de conglomerar.
+El eje 'Height' nos muestra el "costo" de conglomerar.
+
 
 ## Estrategia Divisiva:
 
-```{r}
+Esta estrategia comienza con todos los casos como un gran cluster; para de ahi dividir en clusters más pequeños. Comparando con el proceso anterior, el paso 1 no es necesario, el paso 2 no corresponde a esta técnica, por lo que vamos directo al paso 3:
+
+### 3. Calcular clusters
+
+
+La función **hcut** es la que usaremos para el método jerarquico, y el algoritmo divisivo se emplea usando **diana**:
+
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 res.diana <- hcut(g.dist, k = 4,hc_func='diana')
-
-demo$clustDIV=resDIV$cluster
- 
-```
-
-```{r}
-table(demo$Regimetype,demo$clustDIV,dnn = c('TipoEconomist','clustDiv'))
+demo$clustDIV=res.diana$cluster
 ```
 
 
-```{r}
-table(demo$clustDIV,demo$clustAG,dnn = c('clustDiv','clustAgg'))
+### 4. Comparar
+
+Veamos qué tanto se parece a la clasifición de _The Economist_:
+
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+table(demo$Regimetype,demo$clustDIV,dnn = c('TheEconomist','clustDiv'))
 ```
 
-```{r}
-demo$clusterPT=pam(g.dist,4,cluster.only = T)
+### 5. Visualizar
+
+El **dendograma** nos muestra el proceso de conglomeración:
+
+
+```{r, fig.width=20, fig.height=20, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+fviz_dend(res.diana, cex = 0.7,horiz = T)
 ```
 
-```{r}
-table(demo$clustDIV,demo$clusterPT,dnn = c('clustDiv','clustPT'))
-```
-
-```{r}
-table(demo$clustAG,demo$clusterPT,dnn = c('clustAg','clustPT'))
-```
-
-```{r}
-# Visualize
-fviz_dend(resDIV, rect = TRUE, cex = 0.5,
-          k_colors = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"))
-```
-
-Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster.
+Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
