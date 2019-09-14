@@ -136,7 +136,7 @@ kNNdistplot(g.dist, k=4)
 ```
 ```{r, eval=FALSE}
 library(fpc)
-db.res = dbscan(g.dist, eps=.09, MinPts=15,method = 'dist');  db.res
+db.res = dbscan(g.dist, eps=.09, MinPts=10,method = 'dist');  db.res
 ```
 
 ```{r}
