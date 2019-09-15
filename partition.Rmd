@@ -71,7 +71,7 @@ demo=na.omit(demo)
 Ahora podemos continuar:
 
 
-1. **Calcular distancias**:
+### 1. Calcular distancias:
 
 ```{r}
 library(cluster)
@@ -80,7 +80,7 @@ library(cluster)
 g.dist = daisy(demo[,c(3:7)], metric="gower")
 ```
 
-2. **Proponer cantidad de clusters**:
+### 2. Proponer cantidad de clusters:
 
 Como ya sabemos cuantos grupos habría, usamos esa cantidad para los clusters.
 
@@ -91,7 +91,7 @@ demo$clusterPT=pam.resultado$cluster
 ```
 
 
-3. **Explorar Resultados**
+### 3. Explorar Resultados
 
 Aquí corresponde saber las caracteristicas de los paises en cada cluster. Veamos el resultado **preliminar** al aplicar **aggregate** con la función **each** (esta última está en la biblioteca *plyr*):
 
@@ -125,7 +125,7 @@ kable(tablaResumen, format = "html", digits = 2)%>%
   kable_styling()
 ```
 
-4. **Comparar**
+### 4. Comparar
 
 Usemos una tabla de contingencia para verificar la asignación:
 
@@ -145,7 +145,7 @@ demo[demo$clusterPT==1 & demo$Regimetype=="Flawed democracy",'Country']
 * El cluster 4 tiene las 44 de las autoritarias restantes.
 
 
-5. **Visualizar**:
+### 5. Visualizar:
 
 Veamos lo obtenido:
 

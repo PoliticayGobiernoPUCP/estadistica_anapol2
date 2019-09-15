@@ -14,19 +14,19 @@ ____
 <center> <header><h2>Análisis de Conglomerados: Estrategia de Jerarquizacion</h2>  </header></center>
 ____
 
+<a id='beginning'></a>
+
 La jerarquización busca clusterizar por etapas, hasta que todas las posibilidades de clusterizacion sean visible. Este enfoque tiene dos familias de algoritmos:
 
-* Aglomerativos
-* Divisivos
+* [Aglomerativos](#agg)
+* [Divisivos](#div)
+
 
 Aquí hay un resumen breve del tema:
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/d1teghNuOu8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-## Estrategia Aglomerativa
-
-En esta estrategia se parte por considerar cada caso (fila) como un cluster, para de ahi ir creando miniclusters hasta que todos los casos sean un solo cluster. El proceso va mostrando que tanto _esfuerzo_ toma juntar los elementos cluster tras cluster.
-
+Traigamos nuevamente la data del _Democracy Index_:
 
 ```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # coleccion
@@ -50,6 +50,15 @@ demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
 # veamos que tenemos:
 str(demo)
 ```
+
+<a id='agg'></a>
+
+## <font color="red">Estrategia Aglomerativa</font>
+
+
+En esta estrategia se parte por considerar cada caso (fila) como un cluster, para de ahi ir creando miniclusters hasta que todos los casos sean un solo cluster. El proceso va mostrando que tanto _esfuerzo_ toma juntar los elementos cluster tras cluster.
+
+
 
 Antes de proseguir, nos aseguramos que:
 
@@ -109,7 +118,7 @@ demo$clustAG=res.agnes$cluster
 
 ### 4. Comparar
 
-Veamos qué tanto se parece a la clasifición de _The Economist_:
+Veamos qué tanto se parece a la clasificación de _The Economist_:
 
 ```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 table(demo$Regimetype,demo$clustAG,dnn = c('TheEconomist','clustAgg'))
@@ -128,9 +137,14 @@ fviz_dend(res.agnes,k=4, cex = 0.7, horiz = T)
 El eje 'Height' nos muestra el "costo" de conglomerar.
 
 
-## Estrategia Divisiva:
+____
 
-Esta estrategia comienza con todos los casos como un gran cluster; para de ahi dividir en clusters más pequeños. Comparando con el proceso anterior, el paso 1 no es necesario, el paso 2 no corresponde a esta técnica, por lo que vamos directo al paso 3:
+<a id='div'></a>
+
+## <font color="red">Estrategia Divisiva</font>
+
+
+Esta estrategia comienza con todos los casos como un gran cluster; para de ahi dividir en clusters más pequeños. Comparando con el proceso anterior, el paso 1 no es necesario repetirlo, el paso 2 no corresponde a esta técnica, por lo que vamos directo al paso 3:
 
 ### 3. Calcular clusters
 
@@ -146,7 +160,7 @@ demo$clustDIV=res.diana$cluster
 
 ### 4. Comparar
 
-Veamos qué tanto se parece a la clasifición de _The Economist_:
+Veamos qué tanto se parece a la clasificación de _The Economist_:
 
 
 ```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
@@ -163,3 +177,10 @@ fviz_dend(res.diana, cex = 0.7,horiz = T)
 ```
 
 Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
+
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
