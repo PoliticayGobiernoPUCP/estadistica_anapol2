@@ -19,7 +19,11 @@ Hasta ahora hemos encontrado clusters indicando cuantos se necesitaban, e indire
 
 ```{r, warning=FALSE, message=FALSE}
 # bibliotecas:
-library(stringr,magrittr,htmltab)
+library(stringr)
+library(magrittr)
+library(htmltab)
+library(factoextra)
+library(cluster)
 
 # coleccion
 links=list(web="https://en.wikipedia.org/wiki/Democracy_Index",
@@ -42,24 +46,25 @@ str(demo)
 
 Nuestro punto de partida clave siempre ha sido el cálculo de la matriz de distancias, añadamos la semilla aleatoria:
 ```{r}
-set.seed(2019) 
-g.dist = cluster::daisy(demo[,c(3:7)], metric="gower")
+set.seed(2019)
+inputData=demo[,c(3:7)]
+g.dist = daisy(inputData, metric="gower")
 ```
 
 
-Y con esta matriz calculamos cuatro clusters, pero tal cantidad de clusters salió de una decisión algo arbitraria. Una pregunta exploratoria clave era cuántos clusters deberíamos calcular, y según ellos saber qué hay una cantidad diferenciada de perfiles. Veamos:
+Y con esta matriz calculamos cuatro clusters, pero tal cantidad de clusters salió de una decisión algo arbitraria. Una pregunta exploratoria clave era cuántos clusters deberíamos calcular, y según ellos saber que hay una cantidad diferenciada de perfiles. Veamos:
 
 * Clusters recomendados para partición 
 
 ```{r}
-fviz_nbclust(demo[,c(3:7)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+fviz_nbclust(inputData, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
 ```
 
 
 * Clusters recomendados para jerarquización:
 
 ```{r}
-fviz_nbclust(demo[,c(3:7)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+fviz_nbclust(inputData, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
 ```
 
 ```{r}
@@ -93,12 +98,12 @@ silPAM6[neg_sil6,];length(neg_sil6)
 
 
 ```{r}
-intersect(names(neg_sil6_index),names(neg_sil7_index))
+intersect(names(neg_sil6),names(neg_sil7))
 ```
 
 ```{r}
-setdiff(names(neg_sil6_index),names(neg_sil7_index))
-setdiff(names(neg_sil7_index),names(neg_sil6_index))
+setdiff(names(neg_sil6),names(neg_sil7))
+setdiff(names(neg_sil7),names(neg_sil6))
 ```
 
 
@@ -134,31 +139,30 @@ La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los
 library(dbscan)
 kNNdistplot(g.dist, k=4)
 ```
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 library(fpc)
-db.res = dbscan(g.dist, eps=.09, MinPts=10,method = 'dist');  db.res
+db.res = dbscan(g.dist, eps=.08, MinPts=10,method = 'dist');  db.res
 ```
 
 ```{r}
-str(db.res)
+table(db.res$cluster)
 ```
 
-```{r, eval=FALSE}
 
-factoextra::fviz_cluster(db.res,data = demo[,c(3:7)], ellipse = F,geom = 'point')
+
+
+```{r, eval=TRUE}
+
+factoextra::fviz_cluster(db.res,data = inputData, ellipse = F,geom = 'point')
 ```
 
 ```{r}
-hullplot(demo[,c(3:7)],db.res$cluster)
+hullplot(inputData,db.res$cluster)
 ```
 ```{r}
-res <- optics(g.dist, minPts = 10)
-plot(res)
+
 ```
-```{r}
-res <- extractDBSCAN(res, eps_cl = .0)
-hullplot(demo[,c(3:7)],res = demo$Country)
-```
+
 
 
 Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
