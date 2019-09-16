@@ -160,7 +160,7 @@ factoextra::fviz_cluster(db.res,data = inputData, ellipse = F,geom = 'point')
 hullplot(inputData,db.res$cluster)
 ```
 ```{r}
-
+plot(cmdscale(g.dist))
 ```
 
 
