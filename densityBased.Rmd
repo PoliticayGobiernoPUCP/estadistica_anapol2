@@ -70,10 +70,13 @@ fviz_nbclust(inputData, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose 
 ```{r}
 pam.resultado7=pam(g.dist,7,cluster.only = F)
 pam.resultado6=pam(g.dist,6,cluster.only = F)
+
 res.agnes<- hcut(g.dist, k = 6,hc_func='agnes',hc_method = "ward.D")
 res.diana <- hcut(g.dist, k = 6,hc_func='diana')
 
 ```
+
+
 
 ```{r}
 fviz_silhouette(pam.resultado7)
@@ -137,11 +140,11 @@ La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los
 
 ```{r}
 library(dbscan)
-kNNdistplot(g.dist, k=4)
+kNNdistplot(g.dist, k=10)
 ```
 ```{r, eval=TRUE}
 library(fpc)
-db.res = dbscan(g.dist, eps=.08, MinPts=10,method = 'dist');  db.res
+db.res = dbscan(g.dist, eps=.15, MinPts=10,method = 'dist');  db.res
 ```
 
 ```{r}
@@ -163,6 +166,61 @@ hullplot(inputData,db.res$cluster)
 plot(cmdscale(g.dist))
 ```
 
+```{r, eval=TRUE}
+result <- cmdscale(g.dist,eig=TRUE, k=2,add = T) # k is the number of dim
+
+# data frame prep:
+inputData$dim1 <- result$points[,1]
+inputData$dim2 <- result$points[,2]
+
+
+base= ggplot(inputData,aes(x=dim1, y=dim2,label=row.names(inputData))) 
+base + geom_text(size=2)
+```
+
+```{r}
+g.dist.cmd = daisy(inputData[,c('dim1','dim2')], metric = 'euclidean')
+pam.cmd=pam(g.dist.cmd,6,cluster.only = F)
+agnes.cmd<- hcut(g.dist.cmd, k = 6,hc_func='agnes',hc_method = "ward.D")
+diana.cmd <- hcut(g.dist.cmd, k = 6,hc_func='diana')
+
+
+```
+
+```{r}
+kNNdistplot(g.dist.cmd, k=5)
+```
+```{r, eval=TRUE}
+library(fpc)
+db.cmd = dbscan(g.dist.cmd, eps=.06, MinPts=5,method = 'dist');  db.cmd
+```
+
+```{r}
+
+inputData$pamCMD=as.factor(pam.cmd$clustering)
+inputData$agnesCMD=as.factor(agnes.cmd$cluster)
+inputData$dianaCMD=as.factor(diana.cmd$cluster)
+inputData$dbCMD=as.factor(db.cmd$cluster)
+```
+
+```{r, eval=TRUE}
+base= ggplot(inputData,aes(x=dim1, y=dim2,label=row.names(inputData)))
+base + geom_text(size=2, aes(color=pamCMD))
+
+```
+
+```{r}
+base + geom_text(size=2, aes(color=agnesCMD))
+```
+
+```{r}
+base + geom_text(size=2, aes(color=dianaCMD))
+```
+```{r}
+library(ggrepel)
+limites=c(-0.8,0.8)
+base + geom_point(aes(color=dbCMD)) + geom_text_repel(size=1) + ylim(limites) + xlim(limites)
+```
 
 
 Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
