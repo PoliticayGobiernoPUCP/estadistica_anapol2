@@ -25,6 +25,7 @@ Cuando has podido preparar tus tabla de datos (_data frame_) en el paso anterior
 2. [Ajuste de escala](#escala)
 3. [Anexado o Appending](#append)
 4. [Sintetizar o Aggregating](#aggregate)
+5. **BONUS:** [Creación de Intervalos](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/XTRAintervalos.html)
 
 
 
