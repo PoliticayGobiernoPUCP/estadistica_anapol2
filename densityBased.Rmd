@@ -204,23 +204,38 @@ inputData$dbCMD=as.factor(db.cmd$cluster)
 ```
 
 ```{r, eval=TRUE}
+limites=c(-0.65,0.65)
 base= ggplot(inputData,aes(x=dim1, y=dim2,label=row.names(inputData)))
-base + geom_text(size=2, aes(color=pamCMD))
+base + geom_point(size=2, aes(color=pamCMD)) + ylim(limites) + xlim(limites)
 
 ```
 
 ```{r}
-base + geom_text(size=2, aes(color=agnesCMD))
+base + geom_point(size=2, aes(color=agnesCMD)) + ylim(limites) + xlim(limites)
 ```
 
 ```{r}
-base + geom_text(size=2, aes(color=dianaCMD))
+base + geom_point(size=2, aes(color=dianaCMD)) + ylim(limites) + xlim(limites)
 ```
 ```{r}
 library(ggrepel)
-limites=c(-0.8,0.8)
-base + geom_point(aes(color=dbCMD)) + geom_text_repel(size=1) + ylim(limites) + xlim(limites)
+
+dbplot= base + geom_point(aes(color=dbCMD))  + ylim(limites) + xlim(limites)
+dbplot
+```
+```{r}
+dbplot + geom_text_repel(size=1)
 ```
 
+```{r}
+LABEL=ifelse(inputData$dbCMD==0,row.names(inputData),"")
+dbplot + geom_text_repel(aes(label=LABEL),
+                         size=2, 
+                         direction = "y", ylim = 0.4, 
+                         angle=45,
+                         segment.colour = "grey")
+```
 
-Nota que en esta técnica se ve a todos los elementos (casos) asignados a algun cluster. 
+Nota que en esta técnica hay casos que no serán clusterizados.
+
+https://rstudio-pubs-static.s3.amazonaws.com/297111_d43d6334b0ba442e9bd16ab49d193d79.html
