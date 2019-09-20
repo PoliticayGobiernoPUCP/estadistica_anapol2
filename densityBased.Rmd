@@ -17,7 +17,7 @@ ____
 Hasta ahora hemos encontrado clusters indicando cuantos se necesitaban, e indirectamente hemos forzado a que cada caso sea parte de uno de esos clusters. Veamos la data nuevamente:
 
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 # bibliotecas:
 library(stringr)
 library(magrittr)
@@ -37,7 +37,7 @@ demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], trimws,whitespace = "[\\h\\v]")
 # preparación
 demo=demo[,-c(1)] #sin Rank
 demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)], as.numeric) # a numerico
-row.names(demo)=demo$Country
+row.names(demo)=demo$Country # cambiando row.names
 demo=na.omit(demo)
 
 # veamos que tenemos:
@@ -45,197 +45,286 @@ str(demo)
 ```
 
 Nuestro punto de partida clave siempre ha sido el cálculo de la matriz de distancias, añadamos la semilla aleatoria:
-```{r}
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 set.seed(2019)
 inputData=demo[,c(3:7)]
 g.dist = daisy(inputData, metric="gower")
 ```
 
 
-Y con esta matriz calculamos cuatro clusters, pero tal cantidad de clusters salió de una decisión algo arbitraria. Una pregunta exploratoria clave era cuántos clusters deberíamos calcular, y según ellos saber que hay una cantidad diferenciada de perfiles. Veamos:
+Y con esa matriz calculamos cuatro clusters en nuestras clases previas, pero tal cantidad de clusters salió de una decisión algo _arbitraria_. Una pregunta exploratoria clave es _cuántos_ clusters deberíamos calcular, y según ellos saber que hay una cantidad diferenciada de perfiles. 
+
+## Determinando cantidad de clusters
+
+Existe la medida **gap**, que sirve para determinar el mejor numero de clusters a pedir. Veamos:
 
 * Clusters recomendados para partición 
 
-```{r}
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 fviz_nbclust(inputData, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
 ```
 
 
 * Clusters recomendados para jerarquización:
 
-```{r}
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 fviz_nbclust(inputData, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
 ```
 
-```{r}
-pam.resultado7=pam(g.dist,7,cluster.only = F)
-pam.resultado6=pam(g.dist,6,cluster.only = F)
+El numero de clusters varía, pero quedemonos con seis en ambos enfoques. 
 
-res.agnes<- hcut(g.dist, k = 6,hc_func='agnes',hc_method = "ward.D")
-res.diana <- hcut(g.dist, k = 6,hc_func='diana')
+## Evaluando los clusters obtenidos
+
+Clusterizemos:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+res.pam = pam(g.dist,6,cluster.only = F)
+res.agnes = hcut(g.dist, k = 6,hc_func='agnes',hc_method = "ward.D")
+res.diana = hcut(g.dist, k = 6,hc_func='diana')
 
 ```
 
+Para evaluar, podemos analizar las **siluetas** (silhouettes), una medida que indica la calidad de asignación de un caso particular.
+
+### Evaluación gráfica
+
+* Evaluación gráfica para _pam_:
 
 
-```{r}
-fviz_silhouette(pam.resultado7)
-```
-
-```{r}
-silPAM7 <- pam.resultado7$silinfo$widths
-neg_sil7 <- which(silPAM7[, 'sil_width'] < 0)
-silPAM7[neg_sil7,];length(neg_sil7)
-```
-
-
-```{r}
-fviz_silhouette(pam.resultado6)
-```
-
-```{r}
-silPAM6 <- pam.resultado6$silinfo$widths
-neg_sil6 <- which(silPAM6[, 'sil_width'] < 0)
-silPAM6[neg_sil6,];length(neg_sil6)
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+fviz_silhouette(res.pam)
 ```
 
 
-```{r}
-intersect(names(neg_sil6),names(neg_sil7))
-```
-
-```{r}
-setdiff(names(neg_sil6),names(neg_sil7))
-setdiff(names(neg_sil7),names(neg_sil6))
-```
-
-
-```{r}
+* Evaluación gráfica para _agnes_:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 fviz_silhouette(res.agnes)
+
 ```
 
-```{r}
-silAg <- res.agnes$silinfo$widths
-neg_silAg <- which(silAg[, 'sil_width'] < 0)
-silAg[neg_silAg,];length(neg_silAg)
-```
 
-```{r}
+* Evaluación gráfica para _diana_:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 fviz_silhouette(res.diana)
 ```
 
-```{r}
-silDi <- res.diana$silinfo$widths
-neg_silDi <- which(silDi[, 'sil_width'] < 0)
-silDi[neg_silDi,];length(neg_silDi)
+
+Se asume que el gráfico que tiene menos siluetas negativas es el preferible a los demás.
+
+
+### Evaluación numérica
+
+Esta etapa es para identificar a los casos **mal** asignados: los que tienen **silueta negativa**. Para ello es bueno saber lo que cada **res**ultado nos trajo:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# por ejemplo tiene:
+str(res.pam)
+```
+
+Aquí sabemos que **res.pam** es una _lista_ con varios elementos. Uno de ellos es la información de siluetas, el cual tiene otros componentes:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+str(res.pam$silinfo)
+```
+
+El primero, los **widths**, es donde esta la información de cada uno de los casos:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# veamos solo algunos.
+head(res.pam$silinfo$widths)
+```
+
+Creemos un data frame:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+poorPAM=data.frame(res.pam$silinfo$widths)
+poorPAM$country=row.names(poorPAM)
+```
+
+Nos interesa sólo _sil_width_ negativos:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+poorPAMcases=poorPAM[poorPAM$sil_width<0,'country']
+# osea:
+poorPAMcases
 ```
 
 
+La cantidad de paises es:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+length(poorPAMcases)
+```
+
+
+Podemos hacer lo mismo para las demás estrategias:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# agnes
+poorAGNES=data.frame(res.agnes$silinfo$widths)
+poorAGNES$country=row.names(poorAGNES)
+poorAGNEScases=poorAGNES[poorAGNES$sil_width<0,'country']
+
+#diana:
+poorDIANA=data.frame(res.diana$silinfo$widths)
+poorDIANA$country=row.names(poorDIANA)
+poorDIANAcases=poorDIANA[poorDIANA$sil_width<0,'country']
+
+```
+
+Ahora que tenemos todos los paises mal asignados, podemos **interrogar**  a los resultados usando **teoría de conjuntos**, por ejemplo:
+
+* Los paises mal asignados en _agnes_ **y** en _pam_:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+intersect(poorAGNEScases,poorPAMcases)
+```
+
+* Los paises mal asignados por _agnes_ **pero no** por _pam_:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+setdiff(poorAGNEScases,poorPAMcases)
+```
+
+* Los paises mal asignados por _pam_ **pero no** por _agnes_:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+setdiff(poorPAMcases,poorAGNEScases)
+```
+
+* Los paises mal asignados por _pam_ **o** por _agnes_:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+union(poorPAMcases,poorAGNEScases)
+```
+
+
+# Density Based clustering
 
 La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los casos cuya cercanía entre sí los diferencia de otros. Aquí hay un resumen breve del tema:
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/a69-jHtawEo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
+El algoritmo **dbscan** requiere dos parametros:
 
+1. La distancia _epsilon_ a usar para clusterizar los casos.
+2. La cantidad _k_ minima de puntos para formar un cluster.
 
-```{r}
-library(dbscan)
-kNNdistplot(g.dist, k=10)
-```
-```{r, eval=TRUE}
-library(fpc)
-db.res = dbscan(g.dist, eps=.15, MinPts=10,method = 'dist');  db.res
-```
+El valor _k_ que se usará es al menos la cantidad de dimensiones. Como se han usado cinco variables, usaremos k=5. Calculemos el _epsilon_.
 
-```{r}
-table(db.res$cluster)
+Sin embargo, el principal problema es que necesitamos un **mapa de posiciones** para todos los paises. Eso requiere una técnica que _proyecte_ las dimensiones originales en un plano _bidimensional_. Para ello usaremos la técnica llamada **escalamiento multidimensional**:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+proyeccion = cmdscale(g.dist,eig=TRUE, k=2,add = T) # k is the number of dim
 ```
 
+Habiendo calculado la proyeccción, recuperemos las coordenadas del mapa del mundo basado en nuestras dimensiones nuevas:
 
-
-
-```{r, eval=TRUE}
-
-factoextra::fviz_cluster(db.res,data = inputData, ellipse = F,geom = 'point')
-```
-
-```{r}
-hullplot(inputData,db.res$cluster)
-```
-```{r}
-plot(cmdscale(g.dist))
-```
-
-```{r, eval=TRUE}
-result <- cmdscale(g.dist,eig=TRUE, k=2,add = T) # k is the number of dim
-
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 # data frame prep:
-inputData$dim1 <- result$points[,1]
-inputData$dim2 <- result$points[,2]
+inputData$dim1 <- proyeccion$points[,1]
+inputData$dim2 <- proyeccion$points[,2]
+```
 
-
+Aquí puedes ver el mapa:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 base= ggplot(inputData,aes(x=dim1, y=dim2,label=row.names(inputData))) 
 base + geom_text(size=2)
+
 ```
 
-```{r}
+Obtengamos los clusters **anteriores**:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+inputData$pam=as.factor(res.pam$clustering)
+inputData$agnes=as.factor(res.agnes$cluster)
+inputData$diana=as.factor(res.diana$cluster)
+```
+
+Grafiquemos:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# Estimado limites:
+min(inputData[,c('dim1','dim2')]); max(inputData[,c('dim1','dim2')])
+```
+
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
+limites=c(-0.7,0.7)
+base= ggplot(inputData,aes(x=dim1, y=dim2)) + ylim(limites) + xlim(limites) + coord_fixed()
+base + geom_point(size=2, aes(color=pam))  + labs(title = "PAM") 
+```
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
+base + geom_point(size=2, aes(color=agnes)) + labs(title = "AGNES")
+```
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
+
+base + geom_point(size=2, aes(color=diana)) + labs(title = "DIANA")
+```
+
+
+Ahora **calculemos** usando **dbscan**:
+
+
+1. Nuevas distancias
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# euclidea!!
 g.dist.cmd = daisy(inputData[,c('dim1','dim2')], metric = 'euclidean')
-pam.cmd=pam(g.dist.cmd,6,cluster.only = F)
-agnes.cmd<- hcut(g.dist.cmd, k = 6,hc_func='agnes',hc_method = "ward.D")
-diana.cmd <- hcut(g.dist.cmd, k = 6,hc_func='diana')
-
-
 ```
 
-```{r}
+2. Calculo de epsilon
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+library(dbscan)
 kNNdistplot(g.dist.cmd, k=5)
 ```
-```{r, eval=TRUE}
+
+3. Obteniendo clusters
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 library(fpc)
-db.cmd = dbscan(g.dist.cmd, eps=.06, MinPts=5,method = 'dist');  db.cmd
+db.cmd = dbscan(g.dist.cmd, eps=0.06, MinPts=5,method = 'dist');  db.cmd
 ```
 
-```{r}
+Aqui asignamos los clusters a otra columna:
 
-inputData$pamCMD=as.factor(pam.cmd$clustering)
-inputData$agnesCMD=as.factor(agnes.cmd$cluster)
-inputData$dianaCMD=as.factor(diana.cmd$cluster)
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
 inputData$dbCMD=as.factor(db.cmd$cluster)
 ```
 
-```{r, eval=TRUE}
-limites=c(-0.65,0.65)
-base= ggplot(inputData,aes(x=dim1, y=dim2,label=row.names(inputData)))
-base + geom_point(size=2, aes(color=pamCMD)) + ylim(limites) + xlim(limites)
+4. Graficando
 
-```
+Aquí sin texto:
 
-```{r}
-base + geom_point(size=2, aes(color=agnesCMD)) + ylim(limites) + xlim(limites)
-```
-
-```{r}
-base + geom_point(size=2, aes(color=dianaCMD)) + ylim(limites) + xlim(limites)
-```
-```{r}
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
 library(ggrepel)
-
-dbplot= base + geom_point(aes(color=dbCMD))  + ylim(limites) + xlim(limites)
+base= ggplot(inputData,aes(x=dim1, y=dim2)) + ylim(limites) + xlim(limites) + coord_fixed()
+dbplot= base + geom_point(aes(color=dbCMD)) 
 dbplot
 ```
-```{r}
-dbplot + geom_text_repel(size=1)
+
+Aquí con mucho texto:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
+dbplot + geom_text_repel(size=5,aes(label=row.names(inputData)))
 ```
 
-```{r}
+Aquí sólo los atípicos:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
 LABEL=ifelse(inputData$dbCMD==0,row.names(inputData),"")
 dbplot + geom_text_repel(aes(label=LABEL),
-                         size=2, 
-                         direction = "y", ylim = 0.4, 
+                         size=5, 
+                         direction = "y", ylim = 0.45,
                          angle=45,
                          segment.colour = "grey")
 ```
 
 Nota que en esta técnica hay casos que no serán clusterizados.
 
-https://rstudio-pubs-static.s3.amazonaws.com/297111_d43d6334b0ba442e9bd16ab49d193d79.html
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
