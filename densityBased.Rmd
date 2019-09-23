@@ -44,6 +44,16 @@ demo=na.omit(demo)
 str(demo)
 ```
 
+Reflexionemos sobre los siguientes temas:
+
+1. [¿Cuántos clusters debo pedir?](#cuantos)
+2. [¿Qué tan bien he clusterizado?](#quetan)
+    - [Evaluación Gráfica](#graf)
+    - [Evaluación Numérica](#num)
+    - [Queries con set functions](#set)
+3. [¿Cómo clusterizar sin forzar?](#dbscan)
+
+
 Nuestro punto de partida clave siempre ha sido el cálculo de la matriz de distancias, añadamos la semilla aleatoria:
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 set.seed(2019)
@@ -53,6 +63,10 @@ g.dist = daisy(inputData, metric="gower")
 
 
 Y con esa matriz calculamos cuatro clusters en nuestras clases previas, pero tal cantidad de clusters salió de una decisión algo _arbitraria_. Una pregunta exploratoria clave es _cuántos_ clusters deberíamos calcular, y según ellos saber que hay una cantidad diferenciada de perfiles. 
+
+______
+
+<a id='cuantos'></a>
 
 ## Determinando cantidad de clusters
 
@@ -73,6 +87,12 @@ fviz_nbclust(inputData, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose 
 
 El numero de clusters varía, pero quedemonos con seis en ambos enfoques. 
 
+[al INICIO](#beginning)
+
+______
+
+<a id='quetan'></a>
+
 ## Evaluando los clusters obtenidos
 
 Clusterizemos:
@@ -85,6 +105,9 @@ res.diana = hcut(g.dist, k = 6,hc_func='diana')
 ```
 
 Para evaluar, podemos analizar las **siluetas** (silhouettes), una medida que indica la calidad de asignación de un caso particular.
+
+
+<a id='graf'></a>
 
 ### Evaluación gráfica
 
@@ -112,6 +135,8 @@ fviz_silhouette(res.diana)
 
 Se asume que el gráfico que tiene menos siluetas negativas es el preferible a los demás.
 
+
+<a id='num'></a>
 
 ### Evaluación numérica
 
@@ -170,6 +195,10 @@ poorDIANAcases=poorDIANA[poorDIANA$sil_width<0,'country']
 
 ```
 
+<a id='set'></a>
+
+### Consultas usando Operaciones de Conjuntos
+
 Ahora que tenemos todos los paises mal asignados, podemos **interrogar**  a los resultados usando **teoría de conjuntos**, por ejemplo:
 
 * Los paises mal asignados en _agnes_ **y** en _pam_:
@@ -196,6 +225,12 @@ union(poorPAMcases,poorAGNEScases)
 ```
 
 
+[al INICIO](#beginning)
+
+______
+
+<a id='dbscan'></a>
+
 # Density Based clustering
 
 La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los casos cuya cercanía entre sí los diferencia de otros. Aquí hay un resumen breve del tema:
@@ -205,9 +240,9 @@ La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los
 El algoritmo **dbscan** requiere dos parametros:
 
 1. La distancia _epsilon_ a usar para clusterizar los casos.
-2. La cantidad _k_ minima de puntos para formar un cluster.
+2. La cantidad _k_ minima de puntos para formar un cluster. El valor _k_ que se usará es al menos la cantidad de dimensiones ( en el caso reciente de democracy infex usaríamos k=5). 
 
-El valor _k_ que se usará es al menos la cantidad de dimensiones. Como se han usado cinco variables, usaremos k=5. Calculemos el _epsilon_.
+#### Mapa de casos
 
 Sin embargo, el principal problema es que necesitamos un **mapa de posiciones** para todos los paises. Eso requiere una técnica que _proyecte_ las dimensiones originales en un plano _bidimensional_. Para ello usaremos la técnica llamada **escalamiento multidimensional**:
 
@@ -230,7 +265,7 @@ base + geom_text(size=2)
 
 ```
 
-Obtengamos los clusters **anteriores**:
+Coloreemos el mapa anterior segun el cluster al que corresponden. Creemos esas columnas usando los resultados **anteriores**:
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 inputData$pam=as.factor(res.pam$clustering)
@@ -238,23 +273,32 @@ inputData$agnes=as.factor(res.agnes$cluster)
 inputData$diana=as.factor(res.diana$cluster)
 ```
 
-Grafiquemos:
+Antes de graficar, calculemos los máximos y minimos para producir una gráfica cuadriculada:
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 # Estimado limites:
 min(inputData[,c('dim1','dim2')]); max(inputData[,c('dim1','dim2')])
 ```
 
+Procedeamos a gráficar:
+
+* PAM
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
+
 limites=c(-0.7,0.7)
+
 base= ggplot(inputData,aes(x=dim1, y=dim2)) + ylim(limites) + xlim(limites) + coord_fixed()
 base + geom_point(size=2, aes(color=pam))  + labs(title = "PAM") 
 ```
 
+* AGNES
+
 ```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
 base + geom_point(size=2, aes(color=agnes)) + labs(title = "AGNES")
 ```
+
+* DIANA
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE, fig.height=15,fig.width=15}
 
@@ -265,7 +309,7 @@ base + geom_point(size=2, aes(color=diana)) + labs(title = "DIANA")
 Ahora **calculemos** usando **dbscan**:
 
 
-1. Nuevas distancias
+1. Nuevas distancias: Las posiciones son la información para dbscan.
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 # euclidea!!
@@ -283,10 +327,19 @@ kNNdistplot(g.dist.cmd, k=5)
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 library(fpc)
-db.cmd = dbscan(g.dist.cmd, eps=0.06, MinPts=5,method = 'dist');  db.cmd
+db.cmd = dbscan(g.dist.cmd, eps=0.06, MinPts=5,method = 'dist')
 ```
 
-Aqui asignamos los clusters a otra columna:
+De lo anterior podemos saber:
+```{r}
+db.cmd
+```
+
+* Qué se han obtenido 3 clusters.
+* Que hay 11 elementos que no se pudieron clusterizar.
+
+
+Pongamos esos valores en otra columna:
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
 inputData$dbCMD=as.factor(db.cmd$cluster)
@@ -320,7 +373,7 @@ dbplot + geom_text_repel(aes(label=LABEL),
                          segment.colour = "grey")
 ```
 
-Nota que en esta técnica hay casos que no serán clusterizados.
+Nota que en esta técnica hay casos que no serán clusterizados; de ahí que hemos resaltado los atípicos.
 
 _____
 <br></br>
