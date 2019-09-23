@@ -212,7 +212,7 @@ El valor _k_ que se usará es al menos la cantidad de dimensiones. Como se han u
 Sin embargo, el principal problema es que necesitamos un **mapa de posiciones** para todos los paises. Eso requiere una técnica que _proyecte_ las dimensiones originales en un plano _bidimensional_. Para ello usaremos la técnica llamada **escalamiento multidimensional**:
 
 ```{r, warning=FALSE, message=FALSE, eval=TRUE}
-proyeccion = cmdscale(g.dist,eig=TRUE, k=2,add = T) # k is the number of dim
+proyeccion = cmdscale(g.dist, k=2,add = T) # k is the number of dim
 ```
 
 Habiendo calculado la proyeccción, recuperemos las coordenadas del mapa del mundo basado en nuestras dimensiones nuevas:
