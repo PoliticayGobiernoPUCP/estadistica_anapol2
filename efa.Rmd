@@ -96,7 +96,7 @@ demo[,-c(1)]=lapply(demo[,-c(1)],as.numeric)
 happy[,-c(1)]=lapply(happy[,-c(1)],as.numeric)
 ```
 
-Eliminemos al perdidos al perdido:
+R informa que ha creado un NA, eliminemos la fila con el dato _missing_ y nos quedamos con lo completo:
 
 ```{r}
 happy=na.omit(happy)
@@ -108,7 +108,7 @@ happy=na.omit(happy)
 nrow(merge(happy,demo))
 ```
 
-Hagamos un **nuevo** merge, donde veamos **TODO**:
+Hagamos un **nuevo** merge, donde nos quedemos con **TODOS** los paises que no estab en uno u otro data frame:
 
 ```{r}
 HappyDemo=merge(happy,demo,all.x=T, all.y=T)
@@ -120,7 +120,7 @@ Esta vez HappyDemo tiene varios paises de más, pero con valores perdidos y nomb
 HappyDemo[!complete.cases(HappyDemo),]
 ```
 
-De lo anterior date cuenta que, por un lado, hay paises que les falta un bloque de indicadores, y que en muchos casos los nombres están mal escritos. Podemos recuperar algunos, pero su data original:
+De lo anterior date cuenta que, por un lado, hay paises que les falta un bloque de indicadores, y que en muchos casos los nombres están mal escritos. Podemos recuperar algunos, pero en la data original:
 
 
 ```{r}
@@ -176,6 +176,9 @@ ggcorrplot(corMatrix,
           insig = "blank")
 ```
 
+Si puedes ver bloques correlacionados, hay esperanza de un buen analisis factorial.
+
+
 3. Verificar si datos permiten factorizar:
 
 ```{r}
@@ -185,13 +188,15 @@ psych::KMO(corMatrix)
 
 4. Verificar si la matriz de correlaciones es adecuada
 
-* Hnula: La matriz de correlacion es una matriz identidad
+Aqui hay dos pruebas:
+
+* Hnula: La matriz de correlacion es una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix)
 
 ```{r}
 cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
 ```
 
-* Hnula: La matriz de correlacion es una matriz singular
+* Hnula: La matriz de correlacion es una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html).
 
 ```{r}
 library(matrixcalc)
@@ -205,7 +210,7 @@ is.singular.matrix(corMatrix)
 fa.parallel(theData,fm = 'ML', fa = 'fa')
 ```
 
-Se sugieren 3, veamos.
+Se sugieren 3, veamos:
 
 
 6. Redimensionar a numero menor de factores
@@ -216,6 +221,9 @@ Se sugieren 3, veamos.
 library(GPArotation)
 resfa <- fa(theData,nfactors = 3,cor = 'mixed',rotate = "varimax",fm="minres")
 print(resfa$loadings)
+```
+```{r}
+str(resfa)
 ```
 
 * Resultado mejorado:
