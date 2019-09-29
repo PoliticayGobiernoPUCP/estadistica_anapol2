@@ -1,0 +1,178 @@
+# Practicando clustering:
+
+Pasos previos:
+
+* Descargue las puntuaciones de felicidad de cada país de este [link](https://en.wikipedia.org/wiki/World_Happiness_Report)
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+library(htmltab)
+
+happyL="https://en.wikipedia.org/wiki/World_Happiness_Report"
+happyPath='//*[@id="mw-content-text"]/div/table/tbody'
+
+happy = htmltab(doc = happyL,which  = happyPath,encoding = "UTF-8")
+
+happy[,]=lapply(happy[,], trimws,whitespace = "[\\h\\v]") # no blanks
+
+```
+
+* Si la estructura de los datos tiene está apariencia, prosiga; de lo contrario no debe avanzar:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+library(stringr)
+names(happy)=str_split(names(happy)," ",simplify = T)[,1]
+names(happy)[names(happy)=="Score"]="ScoreHappy"
+
+happy$Overall=NULL # esto luego de lo anterior
+
+happy[,c(2:8)]=lapply(happy[,c(2:8)],as.numeric)
+
+happy=na.omit(happy) # esto luego de lo anterior
+
+str(happy)
+```
+
+* Si la exploración estadística de los datos tiene está apariencia, prosiga; de lo contrario no debe avanzar:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+summary(happy)
+```
+
+
+* Utilice el _score_ para crear 3 intervalos. Al pedir la tabla de frecuencias de la nueva variable del intervalo debe ver esto:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+cortes=c(0,5,7,10)
+happy$intervalos=cut(happy$ScoreHappy,
+                       breaks=cortes)
+
+table(happy$intervalos)
+
+```
+
+* Prepare los datos para el analisis cluster, use como semilla aleatoria al numero **123**:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+library(cluster)
+
+set.seed(123)
+row.names(happy)=happy$Country
+g.dist = daisy(happy[,c(3:8)], metric="gower")
+
+```
+
+* Calcule 3 intervalos usando la técnica de k-medoides y la jerarquica divisiva:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+library(factoextra)
+res.pam=pam(g.dist,3,cluster.only = F)
+happy$pam=res.pam$cluster
+res.diana <- hcut(g.dist, k = 3,hc_func='diana')
+happy$diana=res.diana$cluster
+```
+
+### Responda:
+
+1. ¿Se debió obtener 3 clusters usando _pam_, u otro valor era mejor?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_nbclust(happy[,c(3:8)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: con PAM era mejor 5
+```
+
+2. ¿Se debió obtener 3 clusters usando _diana_, u otro valor era mejor?
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+fviz_nbclust(happy[,c(3:8)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: con DIANA era mejor 4
+```
+
+
+3. Si se mantiene pedir tres clusters en ambos procedimientos ¿Cuál clusterizó mejor?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.diana)
+```
+
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: PAM es mejor pues su siluata promedio es 0.36, y la de DIANA es 0.19
+```
+
+4. Si se mantiene pedir tres clusters en ambos procedimientos ¿ Cuántos países de los mal clusterizados por _diana_ no fueron mal clusterizados por _pam_?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']
+
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']
+
+##
+
+# respuesta: CINCO (los mismos de PAM pues no hubo interseccion)
+setdiff(poorPAM,poorDIANA)
+
+```
+
+
+5. Si usamos _dbscan_, ¿Cuántos clusters se formarían si usamos un epsilo de 0.08?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+proyeccion = cmdscale(g.dist, k=2,add = T) # k is the number of dim
+# data frame prep:
+happy$dim1 <- proyeccion$points[,1]
+happy$dim2 <- proyeccion$points[,2]
+
+g.dist.cmd = daisy(happy[,c('dim1','dim2')], metric = 'euclidean')
+
+# ESTO NO no usamos pues ya te dí el epsilon!!!!!!
+# library(dbscan)
+# kNNdistplot(g.dist.cmd, k=6) # 6 columnas de input
+
+library(fpc)
+db.cmd = dbscan(g.dist.cmd, eps=0.08, MinPts=6,method = 'dist')
+
+# respuesta: 3 clusters
+
+db.cmd
+
+```
+
+6. Si usamos _dbscan_, ¿Qué países no fueron clusterizados (atípicos)?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+happy$dbscan=db.cmd$cluster
+
+# respuesta:
+happy[happy$dbscan==0,'Country']
+```
+
+7. ¿Qué paises coinciden entre los atipicos de _dbscan_ y los mal clusterizados por _pam_:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+atiDB=happy[happy$dbscan==0,'Country']
+
+# respuesta
+
+intersect(atiDB,poorPAM)
+```
+
+8. ¿Hay alguno de los países del intervalo mas bajo (calculado al inicio con _cut_) que sea parte de los paises dificiles de clusterizar en las dbscan?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+poorIntervalo=happy[happy$intervalos=='(0,5]','Country']
+intersect(poorIntervalo,atiDB)
+```
+

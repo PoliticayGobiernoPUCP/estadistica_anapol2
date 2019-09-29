@@ -26,7 +26,7 @@ Para esta sesión trabajaremos con la data de estos links:
 * [https://en.wikipedia.org/wiki/Democracy_Index](https://en.wikipedia.org/wiki/Democracy_Index)
 
 
-```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(htmltab)
 
 # links
@@ -48,97 +48,76 @@ library(stringr) # nombres simples
 names(happy)=str_split(names(happy)," ",simplify = T)[,1]
 names(demo)=str_split(names(demo)," ",simplify = T)[,1]
 
-```
 
-Veamos que tenemos:
-```{r}
-str(demo)
-```
+## Formateo
 
-```{r}
-str(happy)
-```
-
-Eliminemos columnas que no usaremos esta vez:
-```{r}
+# Eliminemos columnas que no usaremos esta vez:
 happy$Overall=NULL
 demo[,c(1,9,10)]=NULL
-```
 
-También debemos tener nombres diferentes en los scores antes del merge:
-```{r}
+# También debemos tener nombres diferentes en los scores antes del merge:
+
 names(happy)[names(happy)=="Score"]="ScoreHappy" 
 names(demo)[names(demo)=="Score"]="ScoreDemo"
-```
-
-Tenemos:
-```{r}
-str(demo)
-```
-
-```{r}
-str(happy)
-```
 
 
-Y ahora arreglemos el tipo de variables:
+# Tipo de variables:
 
-* En demo:
-
-```{r}
+## En demo:
 demo[,-c(1)]=lapply(demo[,-c(1)],as.numeric)
 
-```
-
-* En happy:
-
-```{r}
+# En happy:
 happy[,-c(1)]=lapply(happy[,-c(1)],as.numeric)
-```
 
-R informa que ha creado un NA, eliminemos la fila con el dato _missing_ y nos quedamos con lo completo:
-
-```{r}
+# sin perdidos:
 happy=na.omit(happy)
+demo=na.omit(demo)
 ```
 
-** Presta atención al merge**. Usualmente hacemos merge por _default_ y luego perdemos varias filas:
+**Presta atención al merge**. Usualmente hacemos merge por _default_ y luego perdemos varias filas:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 nrow(merge(happy,demo))
 ```
 
 Hagamos un **nuevo** merge, donde nos quedemos con **TODOS** los paises que no estab en uno u otro data frame:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 HappyDemo=merge(happy,demo,all.x=T, all.y=T)
 ```
 
 Esta vez HappyDemo tiene varios paises de más, pero con valores perdidos y nombres que no pudieron coincidir. Veamos:
 
-```{r}
-HappyDemo[!complete.cases(HappyDemo),]
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+# formateando a 
+# HappyDemo[!complete.cases(HappyDemo),]
+
+library(knitr)
+library(kableExtra)
+kable(HappyDemo[!complete.cases(HappyDemo),],type='html')%>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                  font_size = 10)
 ```
 
 De lo anterior date cuenta que, por un lado, hay paises que les falta un bloque de indicadores, y que en muchos casos los nombres están mal escritos. Podemos recuperar algunos, pero en la data original:
 
 
-```{r}
-# cambiemos a nombres mas sencillos:
-## en demo
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+# cambiemos a nombres usados por otra tabla:
+## en demo por happy
 demo[demo$Country=="Democratic Republic of the Congo",'Country']="Congo (Kinshasa)"
 demo[demo$Country=="Republic of the Congo",'Country']="Congo (Brazzaville)"
 demo[demo$Country=="Trinidad and Tobago",'Country']="Trinidad & Tobago"
 demo[demo$Country=="North Macedonia",'Country']="Macedonia"
 
-## en happy
+## en happy por demo
 happy[happy$Country=="Palestinian Territories",'Country']="Palestine"
 
 ```
 
 Luego de esos ajustes veamos:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 HappyDemo=merge(happy,demo) # re creando HappyDemo
 nrow(HappyDemo)
 ```
@@ -146,14 +125,14 @@ nrow(HappyDemo)
 En efecto se recuperaron 5 paises, asi quedará.
 
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/rQZiy7GE-LM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="800" height="600" src="https://www.youtube.com/embed/rQZiy7GE-LM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Evaluando data
 
 El análisis factorial requiere que hagamos algunas observaciones previas.
 
 1. Calculemos matriz de correlación:
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 
 theData=HappyDemo[,-c(1,2,9)] # sin los Scores ni nombre de país.
 
@@ -165,7 +144,7 @@ corMatrix=polycor::hetcor(theData)$correlations
 2. Explorar correlaciones:
 
 * Sin evaluar significancia:
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(ggcorrplot)
 
 ggcorrplot(corMatrix)
@@ -173,7 +152,7 @@ ggcorrplot(corMatrix)
 
 * Evaluando significancia:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 ggcorrplot(corMatrix,
           p.mat = cor_pmat(corMatrix),
           insig = "blank")
@@ -184,7 +163,7 @@ Si puedes ver bloques correlacionados, hay esperanza de un buen analisis factori
 
 3. Verificar si datos permiten factorizar:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(psych)
 psych::KMO(corMatrix) 
 ```
@@ -195,13 +174,13 @@ Aqui hay dos pruebas:
 
 * Hnula: La matriz de correlacion es una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix)
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
 ```
 
 * Hnula: La matriz de correlacion es una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html).
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(matrixcalc)
 
 is.singular.matrix(corMatrix)
@@ -209,7 +188,7 @@ is.singular.matrix(corMatrix)
 
 5. Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 fa.parallel(theData,fm = 'ML', fa = 'fa')
 ```
 
@@ -220,18 +199,15 @@ Se sugieren 3, veamos:
 
 * Resultado inicial:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(GPArotation)
 resfa <- fa(theData,nfactors = 3,cor = 'mixed',rotate = "varimax",fm="minres")
 print(resfa$loadings)
 ```
-```{r}
-str(resfa)
-```
 
 * Resultado mejorado:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 print(resfa$loadings,cutoff = 0.51)
 ```
 
@@ -239,30 +215,26 @@ Cuando logramos que cada variable se vaya a un factor, tenemos una _estructura s
 
 * Resultado visual:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 fa.diagram(resfa)
 ```
 
 7. Evaluando Resultado obtenido:
 
-```{r}
-summary(resfa)
-```
-
 * La Raíz del error cuadrático medio corregida está cerca a cero?
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$crms
 ```
 
 * La Raíz del error cuadrático medio de aproximación es menor a 0.05?
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$RMSEA
 ```
 
 * El índice de Tucker-Lewis es mayor a 0.9:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$TLI
 ```
 
@@ -270,11 +242,11 @@ resfa$TLI
 
 ¿Qué nombres les darías?
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 as.data.frame(resfa$scores)
 ```
 
-```{r, fig.width=8, fig.height=8}
+```{r, fig.width=8, fig.height=8 ,echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 
 HappyDemoFA=cbind(HappyDemo[1],as.data.frame(resfa$scores))
 
@@ -293,7 +265,7 @@ plot_ly(data=HappyDemoFA, x = ~MR1, y = ~MR2, z = ~MR3, text=~Country) %>%
 RECORDANDO:
 
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 library(fpc)
 library(cluster)
 library(dbscan)
@@ -306,7 +278,7 @@ kNNdistplot(g.dist.cmd, k=3)
 
 Para tener una idea de cada quien:
 
-```{r}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resDB=fpc::dbscan(g.dist.cmd, eps=0.6, MinPts=3,method = 'dist')
 HappyDemoFA$clustDB=as.factor(resDB$cluster)
 aggregate(cbind(MR1, MR2,MR3) # dependientes
@@ -315,7 +287,7 @@ aggregate(cbind(MR1, MR2,MR3) # dependientes
           max)            # operacion
 ```
 
-```{r, fig.width=8, fig.height=8}
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 
 plot_ly(data=HappyDemoFA, x = ~MR1, y = ~MR2, z = ~MR3, text=~Country, color = ~clustDB) %>%
   add_markers() %>%
