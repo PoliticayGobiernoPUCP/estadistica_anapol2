@@ -27,7 +27,7 @@
     - [Basada en densidad](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/densityBased.html)
 
 * Factorización
-    - Explorativa
+    - [Explorativa](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/efa.html)
     - Confirmativa
 
 ### Unidad 3: Modelos Estadístico Inferenciales

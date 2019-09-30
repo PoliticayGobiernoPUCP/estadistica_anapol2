@@ -238,6 +238,17 @@ resfa$RMSEA
 resfa$TLI
 ```
 
+* Que variables aportaron mas a los factores?
+```{r}
+sort(resfa$communality)
+```
+
+* Que variables contribuyen a mas de un factor?
+
+```{r}
+sort(resfa$complexity)
+```
+
 8. Posibles valores proyectados:
 
 ¿Qué nombres les darías?
@@ -297,7 +308,7 @@ plot_ly(data=HappyDemoFA, x = ~MR1, y = ~MR2, z = ~MR3, text=~Country, color = ~
 
 ```
 
-
+ Aqui acaba la Unidad I, el analisis factorial confirmatorio se verá en la siguiente Unidad.
 
 
 _____
