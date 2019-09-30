@@ -308,7 +308,7 @@ plot_ly(data=HappyDemoFA, x = ~MR1, y = ~MR2, z = ~MR3, text=~Country, color = ~
 
 ```
 
- Aqui acaba la Unidad I, el analisis factorial confirmatorio se verá en la siguiente Unidad.
+ Aqui acaba la Unidad II, el analisis factorial confirmatorio se verá en la siguiente Unidad.
 
 
 _____
