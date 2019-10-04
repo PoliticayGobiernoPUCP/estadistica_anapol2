@@ -1,0 +1,70 @@
+
+* Leer todas las hoas y aplicar **rbind**:
+```{r, eval=FALSE}
+library(rio)
+several <- import_list('DATA/wgidataset.xlsx',rbind = FALSE,na ="#N/A")
+```
+
+```{r}
+voice=several[[2]]
+absViolence=several[[3]]
+govEffect=several[[4]]
+regQual=several[[5]]
+ruloLaw=several[[6]]
+contCorrup=several[[7]]
+```
+
+
+```{r}
+names(voice)=paste0(voice[13,],voice[14,])
+names(absViolence)=paste0(absViolence[13,],absViolence[14,])
+names(govEffect)=paste0(govEffect[13,],govEffect[14,])
+names(regQual)=paste0(regQual[13,],regQual[13,])
+names(ruloLaw)=paste0(ruloLaw[13,],ruloLaw[14,])
+names(contCorrup)=paste0(contCorrup[13,],contCorrup[14,])
+```
+
+```{r}
+voice=voice[-c(1:14),]
+absViolence=absViolence[-c(1:14),]
+govEffect=govEffect[-c(1:14),]
+regQual=regQual[-c(1:14),]
+ruloLaw=ruloLaw[-c(1:14),]
+contCorrup=contCorrup[-c(1:14),]
+```
+
+```{r}
+estCols=grep('Estimate',x =names(voice) )
+```
+
+```{r}
+voice=voice[,c(1,2,estCols)]
+absViolence=absViolence[,c(1,2,estCols)]
+govEffect=govEffect[,c(1,2,estCols)]
+regQual=regQual[,c(1,2,estCols)]
+ruloLaw=ruloLaw[,c(1,2,estCols)]
+contCorrup=contCorrup[,c(1,2,estCols)]
+```
+
+```{r}
+#several <- import_list('DATA/wgidataset.xlsx',rbind = FALSE,na ="#N/A")
+```
+
+```{r}
+varName=c("voice","absViolence","govEffect","regQual","ruloLaw","contCorrup")
+#paste0(varName,"2018")
+
+data2018=data.frame(voice[,c(1,2,20)],
+        absViolence[,c(20)],
+        govEffect[,c(20)],
+        regQual[,c(20)],
+        ruloLaw[,c(20)],
+        contCorrup[,c(20)])
+names(data2018)=c('Country','iso3',paste0(varName,"2018"))
+```
+
+```{r}
+library(stringi)
+stri_trans_general(str = 'Peña', id = "Latin-ASCII")
+```
+
