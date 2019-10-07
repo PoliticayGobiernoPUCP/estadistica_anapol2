@@ -15,6 +15,7 @@ contCorrup=several[[7]]
 ```
 
 
+
 ```{r}
 names(voice)=paste0(voice[13,],voice[14,])
 names(absViolence)=paste0(absViolence[13,],absViolence[14,])
@@ -34,7 +35,7 @@ contCorrup=contCorrup[-c(1:14),]
 ```
 
 ```{r}
-estCols=grep('Estimate',x =names(voice) )
+estCols=grep('Estimate',x =names(voice))
 ```
 
 ```{r}
@@ -52,19 +53,206 @@ contCorrup=contCorrup[,c(1,2,estCols)]
 
 ```{r}
 varName=c("voice","absViolence","govEffect","regQual","ruloLaw","contCorrup")
-#paste0(varName,"2018")
+#paste0(varName,"2016")
 
-data2018=data.frame(voice[,c(1,2,20)],
+data2016=data.frame(voice[,c(1,2,20)],
         absViolence[,c(20)],
         govEffect[,c(20)],
         regQual[,c(20)],
         ruloLaw[,c(20)],
         contCorrup[,c(20)])
+
+names(data2016)=c('Country','iso3',paste0(varName,"2016"))
+
+data2018=data.frame(voice[,c(1,2,22)],
+        absViolence[,c(22)],
+        govEffect[,c(22)],
+        regQual[,c(22)],
+        ruloLaw[,c(22)],
+        contCorrup[,c(22)])
+
 names(data2018)=c('Country','iso3',paste0(varName,"2018"))
 ```
 
+
+```{r}
+write.csv(data2018,"data2018.csv")
+write.csv(data2016,"data2016.csv")
+```
+
+
+```{r}
+#data2016=na.omit(data2016)
+
+data2016=data2016[complete.cases(data2016),]
+data2018=data2018[complete.cases(data2018),]
+
+```
+
+
 ```{r}
 library(stringi)
-stri_trans_general(str = 'Peña', id = "Latin-ASCII")
+
+stri_trans_general(str = 'Perú', id = "Latin-ASCII")
 ```
+
+
+
+
+
+```{r}
+library(htmltab)
+hdiL=c("http://hdr.undp.org/en/composite/GDI",
+       '//*[@id="stylesheet.css"]/div/div/div/div/table')
+hdi = htmltab(doc = hdiL[1], 
+              which =hdiL[2],
+              encoding = "UTF-8") 
+```
+
+```{r}
+names(hdi)
+```
+
+```{r}
+library(stringr)
+str_split(names(hdi)," >> 2017",simplify = T)[,1]
+```
+
+
+```{r}
+names(hdi)=str_split(names(hdi)," >> 2017",simplify = T)[,1]
+```
+
+```{r}
+str_split(names(hdi)[c(2:4,7:14)]," >> ",simplify = T)[,2]
+```
+
+```{r}
+names(hdi)[c(2:4,7:14)]=str_split(names(hdi)[c(2:4,7:14)]," >> ",simplify = T)[,2]
+```
+
+```{r}
+names(hdi)
+```
+```{r}
+str_split(names(hdi)," >> ",simplify = T)[,1]
+```
+```{r}
+names(hdi)=str_split(names(hdi)," >> ",simplify = T)[,1]
+```
+```{r}
+gsub(" ","_",names(hdi))
+```
+```{r}
+names(hdi)=gsub(" ","_",names(hdi))
+```
+```{r}
+fm=c("_F","_M")
+paste0(names(hdi)[5:14],fm)
+```
+```{r}
+names(hdi)[5:14]=paste0(names(hdi)[5:14],fm)
+```
+
+```{r}
+newN=c('rank','Country','Value','Group','HDI_F','HDI_M','LEB_F',
+       'LEB_M',"EYS_F","EYS_M",'MYS_F','MYS_M','INC_F','INC_M')
+```
+
+
+
+
+```{r}
+hdi = htmltab(doc = hdiL[1], 
+               which =hdiL[2],
+               encoding = "UTF-8") 
+```
+
+```{r}
+names(hdi)=newN
+```
+
+
+
+```{r}
+x="1,234"
+x=gsub(",","",x)
+as.numeric(x)
+```
+
+```{r}
+library(readr)
+
+hdi[,c(13:14)]=lapply(hdi[,c(13:14)],parse_number)
+```
+```{r}
+# mal: as.numeric(hdi[,c(3:7)])
+
+hdi[,c(3:7)]=lapply(hdi[,c(3:7)],as.numeric)
+
+hdi$HDI_M=as.numeric(hdi$HDI_M)
+hdi$HDI_F=as.numeric(hdi$HDI_F)
+hdi$EYS_F=as.numeric(hdi$EYS_F)
+hdi$EYS_M=as.numeric(hdi$EYS_M)
+
+```
+
+
+
+
+```{r}
+hdi[!complete.cases(hdi$Value),]
+```
+```{r}
+hdi=hdi[complete.cases(hdi),]
+```
+
+```{r}
+hdi[,c(7:14)]=scale(hdi[,c(7:14)])
+```
+
+
+```{r}
+library(htmltab)
+
+# coleccion
+links=list(web="https://en.wikipedia.org/wiki/Democracy_Index",
+           xpath ='//*[@id="mw-content-text"]/div/table[2]/tbody')
+demo<- htmltab(doc = links$web, which =links$xpath)
+```
+
+
+```{r}
+str(demo)
+```
+
+```{r}
+names(demo)
+```
+
+```{r}
+library(stringr)
+names(demo)=str_split(names(demo)," >> ",simplify = T)[,1]
+```
+
+```{r}
+str_replace_all(names(demo), "[^[:ascii:]]", "")
+```
+
+```{r}
+names(demo)=str_replace_all(names(demo), "[^[:ascii:]]", "")
+```
+
+```{r}
+names(demo)=gsub(" ","_",names(demo))
+```
+
+```{r}
+demo[,]=lapply(demo[,], str_replace_all,"[^[:ascii:]]","")
+```
+
+
+
+
+
 
