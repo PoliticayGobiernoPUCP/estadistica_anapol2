@@ -1,5 +1,6 @@
 
-* Leer todas las hoas y aplicar **rbind**:
+* Leer todas las hojas y aplicar **rbind**:
+
 ```{r, eval=FALSE}
 library(rio)
 several <- import_list('DATA/wgidataset.xlsx',rbind = FALSE,na ="#N/A")
