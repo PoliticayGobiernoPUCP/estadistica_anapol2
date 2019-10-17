@@ -1,0 +1,193 @@
+# Practicando clustering:
+
+Pasos previos:
+
+* Descargue las puntuaciones de felicidad de cada país de este [link](https://en.wikipedia.org/wiki/World_Happiness_Report)
+
+* Descargue las puntuaciones de democracia de cada país de este [link](https://en.wikipedia.org/wiki/Democracy_Index)
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+library(htmltab)
+
+happyL="https://en.wikipedia.org/wiki/World_Happiness_Report"
+happyPath='//*[@id="mw-content-text"]/div/table/tbody'
+
+demoL="https://en.wikipedia.org/wiki/Democracy_Index"
+demoPath='//*[@id="mw-content-text"]/div/table[2]/tbody'
+
+happy = htmltab(doc = happyL,which  = happyPath,encoding = "UTF-8")
+
+demo = htmltab(doc = demoL,which  = demoPath,encoding = "UTF-8")
+
+happy[,]=lapply(happy[,], trimws,whitespace = "[\\h\\v]") # no blanks
+demo[,]=lapply(demo[,], trimws,whitespace = "[\\h\\v]") # no blanks
+
+```
+
+
+* Si la estructura de los datos tiene está apariencia, prosiga; de lo contrario no debe avanzar:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+library(stringr)
+names(happy)=str_split(names(happy)," ",simplify = T)[,1]
+names(happy)[names(happy)=="Score"]="ScoreHappy"
+
+names(demo)=str_split(names(demo)," ",simplify = T)[,1]
+names(demo)[names(demo)=="Score"]="ScoreDemo"
+
+happy$Overall=NULL # esto luego de lo anterior
+demo[,c(1,9,10)]=NULL # esto luego de lo anterior
+
+happy[,c(2:8)]=lapply(happy[,c(2:8)],as.numeric)
+demo[,c(2:7)]=lapply(demo[,c(2:7)],as.numeric)
+
+
+happy=na.omit(happy) # esto luego de lo anterior
+demo=na.omit(demo) # esto luego de lo anterior
+
+dataintegrada=merge(happy,demo)
+```
+
+
+
+* Si la exploración estadística de los datos tiene está apariencia, prosiga; de lo contrario no debe avanzar:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+summary(dataintegrada)
+```
+
+
+
+
+
+
+
+* Prepare los datos para el analisis cluster, use como semilla aleatoria al numero **123**:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+library(cluster)
+
+set.seed(123)
+row.names(dataintegrada)=dataintegrada$Country
+g.dist = daisy(dataintegrada[,c(3:8,10:14)], metric="gower")
+
+```
+
+* Calcule 4 intervalos usando la técnica de partición, la jerarquica aglomerativa y la jerarquica divisiva:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+library(factoextra)
+res.pam=pam(g.dist,4,cluster.only = F)
+dataintegrada$pam=res.pam$cluster
+
+res.diana <- hcut(g.dist, k = 4,hc_func='diana')
+dataintegrada$agnes=res.diana$cluster
+
+res.agnes <- hcut(g.dist, k = 4,hc_func='agnes')
+dataintegrada$agnes=res.agnes$cluster
+```
+
+### Responda:
+
+1. ¿Se debió obtener 4 clusters usando partición, u otro valor era mejor?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_nbclust(dataintegrada[,c(3:8,10:14)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: con PAM era mejor 6
+```
+
+2. ¿Se debió obtener 4 clusters usando jerarquizacion, u otro valor era mejor?
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+fviz_nbclust(dataintegrada[,c(3:8,10:14)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: con agnes y diana era mejor 7
+```
+
+
+3. Si se mantiene pedir 4 clusters en ambos procedimientos ¿Cuál clusterizó mejor?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+# respuesta: son similares
+```
+
+4. Si se mantiene pedir 4 clusters en los tres procedimientos ¿ Cuántos países en comun fueron mal clusterizados por ambas estrategias jerarquicas?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']
+
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']
+
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']
+
+##
+
+# respuesta: Los mismos de PAM pues no hubo interseccion)
+intersect(poorDIANA,poorAGNES)
+
+```
+
+
+5. Si usamos _dbscan_, ¿Cuántos clusters se formarían si usamos un epsilo de 0.09?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+proyeccion = cmdscale(g.dist, k=2,add = T) # k is the number of dim
+# data frame prep:
+dataintegrada$dim1 <- proyeccion$points[,1]
+dataintegrada$dim2 <- proyeccion$points[,2]
+
+g.dist.cmd = daisy(dataintegrada[,c('dim1','dim2')], metric = 'euclidean')
+
+# ESTO NO no usamos pues ya te dí el epsilon!!!!!!
+# library(dbscan)
+# kNNdistplot(g.dist.cmd, k=11) # 11 columnas de input
+
+library(fpc)
+db.cmd = dbscan(g.dist.cmd, eps=0.09, MinPts=11,method = 'dist')
+
+# respuesta: 3 clusters
+
+db.cmd
+
+```
+
+6. Si usamos _dbscan_, ¿Qué países no fueron clusterizados (atípicos)?
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+dataintegrada$dbscan=db.cmd$cluster
+
+# respuesta:
+dataintegrada[dataintegrada$dbscan==0,'Country']
+```
+
+7. ¿Qué paises son atipicos de _dbscan_ pero que no fueron mal clusterizados por particion:
+
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+atiDB=dataintegrada[dataintegrada$dbscan==0,'Country']
+
+# respuesta
+
+setdiff(atiDB,poorPAM)
+```
+
+
+

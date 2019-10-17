@@ -1,0 +1,496 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Introducción a la Regresión Lineal Multivariada</h2>  </header></center>
+____
+
+
+En esta sesión deseo que entiendas por qué es necesario ir más allá de la correlación (_Pearson_, _Spearman_, etc.) o las diferencias de valores medios (_t test_, _kruska wallis_, etc.). Esta necesidad de ir más allá tiene una técnica de apoyo conocida como la regresión. 
+
+La sesión va en tres partes:
+
+* [De Correlación a Regresión](#corr)
+* [Regresión Lineal](#rlin)
+* [Diagnósticos de la Regresión](#diag)
+
+
+
+<a id='corr'></a>
+
+## I. De Correlación a regresión
+
+
+Trabajemos con los datos del archivo en SPSS **hsb.sav**:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+library(rio)
+linkToData='https://github.com/PsicologiaPUCP/ArchivosDeDatos/raw/master/hsb_ok.sav'
+hsb=import(linkToData)
+
+```
+
+Revisando tipo de datos:
+
+```{r}
+str(hsb)
+```
+
+Casi todo salió numerico, pero no sabremos qué ajustar si no leemos el manual metodológico o el diccionario de datos o la metadata [disponible](https://education.illinois.edu/docs/default-source/carolyn-anderson/edpsy589/lectures/HSBDATA.pdf).
+
+De ahi que depemos pre procesar:
+
+```{r}
+
+# a nominal
+categoricals=c("SEX","RACE","SES","SCTYP","HSP","CAR")
+
+hsb[,categoricals]=factorize(hsb[,categoricals])
+
+
+# a ordinal:
+hsb$SES=ordered(hsb$SES,levels=c("Low","Medium","High" ))
+```
+
+
+### La variable de interés:
+
+Asumamos que nuestra variable de interés es el desempeño en matemáticas; así, nuestra _variable dependiente_ está  representada por la variable _MATH_. 
+
+
+Apartir de ahí, consideremos que nos interesa saber la posible relación que pueda tener la variable que ha medido el desempeño en escritura; así, una variable independiente sería la representada por la variable _WRTG_. Hasta ahora sabemos que como son _dos_ variables de tipo _numérico_ debemos usar una correlación. La gráfica de correlación es esta:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+library(ggplot2)
+
+base=ggplot(data=hsb, aes(x=WRTG, y=MATH))
+scatter = base + geom_point()
+scatter
+```
+
+Vemos que hay una aparente relación. Calculemos los indices de correlación:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+f1=formula(~MATH + WRTG)
+
+# camino parametrico
+pearsonf1=cor.test(f1,data=hsb)[c('estimate','p.value')]
+
+# camino no parametrico
+spearmanf1=cor.test(f1,data=hsb,method='spearman')[c('estimate','p.value')]
+```
+
+ Asumiendo un camino paramétrico, podemos pedir el coeficiente de *Pearson*, el cuál al ser calculado obtenemos `r pearsonf1[1]` (con p-value= `r round(as.numeric(pearsonf1[2]),3)`). 
+
+
+Si hubieramos seguido una ruta no paramétrica, informaríamos el coeficiente de *Spearman*:`r spearmanf1[1]` (con p-value= `r round(as.numeric(spearmanf1[2]),3)`).
+
+Ahora, consideremos que nos interesa  saber _a la vez_ la posible relación que pueda tener la variable que ha medido el desempeño en ciencias; así otra variable independiente sería la representada por la variable _SCI_.  Como es otra variable _numérica_ no podemos calcular la correlación de tres variables, pero podemos tratar de verlo visualmente:
+
+* En tres dimensiones:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+library(scatterplot3d)
+scatterplot3d(hsb[,c('SCI','WRTG','MATH')])
+```
+
+* En dos dimensiones:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+base=ggplot(data=hsb, aes(x=WRTG, y=MATH))
+base + geom_point(aes(color = SCI))
+
+```
+
+Calulemos las correlaciones:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+f2=formula(~MATH+SCI)
+
+# camino parametrico
+pearsonf2=cor.test(f2,data=hsb)[c('estimate','p.value')]
+
+# camino no parametrico
+spearmanf2=cor.test(f2,data=hsb, method='spearman')[c('estimate','p.value')]
+
+```
+
+Podríamos calcular la correlación de SCI con MATH, obteniendo el Pearson (`r pearsonf2[1]`, p-value= `r round(as.numeric(pearsonf2[2]),3)`) y el Spearman (`r spearmanf2[1]`,p-value= `r round(as.numeric(spearmanf2[2]),3)`).  
+
+Visualmente vemos relación, pero **no tenemos** un coeficiente para medir ello.
+
+
+
+Finalmente, ¿si quisiéramos ver si el sexo tiene algun rol en todo esto? Como ésta es una variable _categórica_ y _dicotómica_, lo primero que puede venir a la mente es esta gráfica:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+base=ggplot(data=hsb, aes(x=SEX, y=MATH))
+base + geom_boxplot(notch = T)
+
+```
+
+Los boxplots tienen un _notch_ flanqueando a la _mediana_, para sugerir igualdad de medianas si éstos se intersectan; de ahi que parece no haber diferencia sustantiva entre hombres y mujeres en cuanto a su desempeño en MATH. 
+
+Una alternativa al boxplot seria las barras de error:
+```{r}
+library(ggpubr)
+ggerrorplot(data=hsb, x = "SEX", y = "MATH")
+```
+
+En este último caso, si las lineas (denotado por las barras de error de la media) se intersectan, sugeriria que los valores medios (en este caso la _media_) podrian ser iguales.
+
+Verificar si hay o no igualdad entre distribuciones depende si las variables se distribuyen o no de manera normal:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+library(ggplot2)
+ggplot(hsb,aes(x=MATH)) + 
+  geom_histogram(aes(y = ..density..),bins = 20, fill='green') +
+  stat_function(fun = dnorm, colour = "red",
+                      args = list(mean = mean(hsb$MATH, na.rm = TRUE),
+                                 sd = sd(hsb$MATH, na.rm = TRUE))) + 
+  facet_grid(~SEX) + 
+  coord_flip()
+```
+
+
+Nota que los histogramas de la data _real_ tienen encima la curva _normal_ que _idealmente_ tendría esa data. La lejanía entre ellos, sugeriría no normalidad.
+
+
+Se suele usar un qqplot para explorar la presencia/ausencia de normalidad:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, eval=TRUE}
+# se sugiere normalidad si los puntos no se alejan de la diagonal.
+
+library(ggpubr)
+ggqqplot(data=hsb,x="MATH") + facet_grid(. ~ SEX)
+```
+
+
+Como ello no es fácil de discernir visualmente, tenemos por costumbre calcular algun coeficiente, como el _Shapiro-Wilk_:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+library(knitr)
+library(magrittr)
+library(kableExtra)
+f4=formula(MATH~SEX)
+
+
+tablag= aggregate(f4, hsb,
+          FUN = function(x) {y <- shapiro.test(x); c(y$statistic, y$p.value)})
+
+# para que se vea mejor:
+
+
+shapiroTest=as.data.frame(tablag[,2])
+names(shapiroTest)=c("W","Prob")
+
+
+kable(cbind(tablag[1],shapiroTest))%>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = "left")
+```
+
+Esto nos sugiere un camino no paramétrico para ver la diferencia de valores medios, por lo que deberiamos usar la prueba de _Mann-Whitney_ en vez de la _prueba t_ para testaer la relación entre ambas.
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+tf4=t.test(f4,data=hsb)[c('estimate','p.value')]
+wilcoxf4=wilcox.test(f4,data=hsb)['p.value']
+```
+
+La prueba no paramétrica no rechazaría la igualdad de valores medios (Mann-Whitney con p valor = `r wilcoxf4`).
+
+* Veamos como representar al sexo en nuestra gráfica entre WRTG y MATH:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+base=ggplot(data=hsb, aes(x=WRTG, y=MATH))
+base + geom_point(aes(color = SEX))
+
+```
+
+
+* Veamos como representar al sexo en nuestra gráfica entre WRTG, SCI y MATH:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+base + geom_point(aes(size = SCI, color=SEX,shape=SEX)) + scale_shape_manual(values=c(3, 2))
+```
+
+Otra alternativa puede ser:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+base + geom_point(aes(color = SCI)) + facet_grid(~SEX)
+```
+
+Y claro:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+paleta <- c("coral1","cyan" )
+colors <- paleta[as.numeric(hsb$SEX)]
+scatterplot3d(hsb[,c('SCI','WRTG','MATH')],color=colors)
+
+```
+
+En todos los gráficos vemos que los hombres y las mujeres están distribuidos por todo el gráfico, lo cual nos sugiere que no hay diferencias aun en dimensiones mayores a dos. Sin embargo, no tenemos una medida de cuanto cada uno afecta a nuestra dependiente.
+
+De ahi que necesitamos la **regresión**.
+
+_____
+
+<a id='rlin'></a>
+
+
+## Regresión Lineal
+
+La regresión es una técnica donde hay que definir una variable dependiente y una o más independientes. Las independientes pueden tener rol predictor, dependiendo del diseño de investigación, aunque por defecto tiene un rol explicativo. 
+
+La regresión sí quiere informar cuánto una variable (_independiente_) puede explicar la variación de otra (_dependiente_), de ahí que es una técnica para probar hipótesis direccionales o asimétricas (las correlaciones tiene hipótesis simétricas).
+
+La regresión busca proponer un modelo, es decir una ecuación, que recoja como una variable explicaría a otra.Para nuestro caso la variable dependiente es MATH, y tendriamos hasta ahora tres modelos: 
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+modelo1=formula(MATH~WRTG)
+modelo2=formula(MATH ~ WRTG + SCI)
+modelo3= formula(MATH ~ WRTG + SCI + SEX)
+```
+
+Por ejemplo, para la hipótesis '_el nivel de desempeño en escritura afecta el desempeño en matemáticas_', la regresión arrojaría este resultado:
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+library(stargazer)
+reg1=lm(modelo1,data=hsb)
+stargazer(reg1,type = "html",intercept.bottom = FALSE)
+```
+
+<br></br>
+
+Aquí ya sabemos algo interesante, **primero** que WRTG tiene efecto, pues es _significativo_ (indicado por los dos asteriscos); **segundo**, que ese efecto es _directo_, pues el coeficiente calculado es positivo; y **tercero** que la _magnitud_ de ese efecto es `r round(reg1$coefficients[2],3)`, lo que indica cuanto aumenta MATH en promedio cuando WRTG se incremente en una unidad.
+
+Esto es información suficiente para representar esa relación con una ecuación. Como la ecuación sólo tiene una variable independiente podemos producir una recta sobre el gráfico de correlación:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+ggplot(hsb, aes(x=WRTG, y=MATH)) + 
+  geom_point()+
+  geom_smooth(method=lm)
+
+```
+
+Esa recta podemos representarla así:
+
+$$  MATH= `r reg1$coefficients[1]` + `r reg1$coefficients[2]` \cdot WRTG + \epsilon$$
+
+El Y verdadero es MATH, pero la regresión produce un $\hat{MATH}$ estimado, de ahi la presencia del $\epsilon$. Justamente el _R cuadrado ajustado_ (`r summary(reg1)$r.squared`) nos brinda un porcentaje (multiplicalo por 100) que da una pista de nuestra cercanía a una situación perfecta (cuando vale **1**).
+
+Y sí queremos ver el efecto de SCI?
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg2=lm(modelo2,data=hsb)
+stargazer(reg2,type = "html",intercept.bottom = FALSE)
+```
+
+En este caso, la regresión tendrá una formula con dos variables explicando la dependiente, así que en vez de producir una línea buscará producir un plano:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+library(scatterplot3d)
+G  <- scatterplot3d(hsb[,c('SCI','WRTG','MATH')])
+G$plane3d(reg2, draw_polygon = TRUE, draw_lines = FALSE)
+```
+
+Este plano podemos representarlo así:
+
+$$  MATH= `r reg2$coefficients[1]` + `r reg2$coefficients[2]` \cdot WRTG + `r reg2$coefficients[3]` \cdot SCI + \epsilon$$
+
+Nuevamente, el Y verdadero es MATH, pero la regresión produce un $\hat{MATH}$ estimado en forma de plano. De igual manera el _R cuadrado ajustado_ (`r summary(reg2)$r.squared`) nos da una pista de nuestra lejanía a una situación perfecta.
+
+Es clave darse cuenta de otro detalle, que el coeficiente de WRTG ha variado en la fórmula ahora que está presente SCI ¿Por qué sucede esto? Veamoslo así: en el primer caso, WRTG y $\epsilon$ buscaban representar la variabilidad en MATH, y ahora, en el segundo caso, viene SCI para mejorar esa explicación; es así que el peso de la explicación ahora se recalcula y el coeficiente de WRTG deja de explicar lo que le corresponde a SCI, y $\epsilon$ también le entrega _algo_ a SCI. 
+
+Como $\epsilon$ no tiene coeficiente, representamos su variación usando el error típico de los residuos o _residual standard error_ (RSE). Nótese que éste ha variado de un modelo ha otro, ahora tenemos un RSE menor. Aquí vale la pena preguntarse si esta disminución del error es significativa, obteniendo:
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+tanova=anova(reg1,reg2)
+stargazer(tanova,type = 'html',summary = F,title = "Table de Análisis de Varianza")
+```
+
+<br></br>
+
+La comparación de modelos usando la tabla de análisis de varianza  (anova) propone como hipótesis nula que los modelos no difieren (no se ha reducido el error al pasar de un modelo a otro). Como la comparación es _significativa_ (vea el **P**), rechazamos igualdad de modelos: el modelo 2 sí reduce el error al incluir una variable más.
+
+Finalmente, veamos el rol de sexo:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg3=lm(modelo3,data=hsb)
+stargazer(reg3,type = "html",intercept.bottom = FALSE)
+```
+
+Aunque no podemos graficar cuatro coordenadas, podemos usar elementos visuales:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+library(scatterplot3d)
+colors <- paleta[as.numeric(hsb$SEX)]
+G  <- scatterplot3d(hsb[,c('SCI','WRTG','MATH')],color=colors)
+G$plane3d(reg2, draw_polygon = TRUE, draw_lines = FALSE)
+```
+
+Nuestra nueva ecuación sería:
+
+$$  MATH= `r reg3$coefficients[1]` + `r reg3$coefficients[2]` \cdot WRTG + `r reg3$coefficients[3]` \cdot SCI + `r reg3$coefficients[4]` \cdot SEX + \epsilon$$
+
+Nuevamente podemos ver si añadir SEXO en este modelo representa una mejora al anterior:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+tanova=anova(reg1,reg2,reg3)
+stargazer(tanova,type = 'html',summary = F,title = "Table de Análisis de Varianza")
+```
+
+<br></br>
+<br></br>
+
+
+Finalmente, podemos resumir todo en esta tabla:
+
+<br></br>
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+library(stargazer)
+stargazer(reg1,reg2,reg3, type = "html", title = "Modelos planteadas",digits = 2, single.row = F,no.space = F,intercept.bottom = FALSE,
+          dep.var.caption="Variable dependiente:",
+          dep.var.labels="Desempeño en Matemáticas",
+          covariate.labels=c("Constante","Desempeño en Escritura","Desempeño en Ciencias","SEXO (mujer)"),
+          keep.stat = c("n","adj.rsq","ser"),df = F,
+          notes.label = "Notas:")
+```
+
+Graficamente:
+
+```{r}
+library(ggplot2)
+library(sjPlot)
+
+
+plot_models(reg1,reg2,reg3,vline.color = "grey",m.labels=c("Modelo 1","Modelo 2","Modelo 3"))
+```
+
+_____
+
+<a id='diag'></a>
+
+## Diagnósticos de la Regresión
+
+
+Para que se considere que el modelo de regresión elegido es el adecuado, debemos verificar algunos requisitos a posteriori:
+
+
+**1. Linealidad**:
+
+Se asume relación lineal entre Y y Xs:
+
+```{r}
+# linea roja debe tender a horizontal
+plot(reg3, 1)
+```
+
+**2. Homocedasticidad**
+ 
+
+Se asume que el error del modelo de regresión no afecta la varianza o dispersión de la estimación ($\hat{MATH}$):
+
+```{r}
+# linea roja debe tender a horizontal
+plot(reg3, 3)
+```
+
+También podemos utilizar el test de Breusch-Pagan:
+
+```{r}
+library(lmtest)
+# null: modelo homocedastico
+bptest(reg3)
+```
+
+La probabilidad de homocedasticidad es muy baja (p-value  menor a 0.05), de ahi que se rechaza que el modelo muestre homocedasticidad. 
+
+
+**3. Normalidad de los residuos**
+
+Los residuos, la diferencia entre MATH y $\hat{MATH}$, debe distribuirse de manera normal:
+
+```{r}
+# puntos cerca a la diagonal
+plot(reg3, 2)
+```
+
+Podemos aplicar el test de Shapiro a los residuos:
+
+```{r}
+shapiro.test(reg3$residuals)
+```
+
+
+**4. No multicolinelidad**
+
+
+Si los predictores tienen una correlación muy alta entre sí, hay multicolinealidad, lo cual no es deseable:
+
+```{r}
+library(DescTools)
+VIF(reg3) # > 5 es problematico
+```
+
+**5. Valores influyentes**:
+
+Hay casos particulares, que tienen la capacidad de trastocar lo que casi todos  puntos representan. A veces detectandolos y suprimiendolos, podemos ver un mejor modelo:
+
+```{r}
+plot(reg3, 5)
+```
+
+Asi podemos recuperar los casos influyentes:
+```{r}
+checkReg3=as.data.frame(influence.measures(reg3)$is.inf)
+head(checkReg3)
+```
+
+Normalmente le prestamos atencion al indice de Cook y a los valores predecidos (los _hat_ values):
+
+```{r}
+checkReg3[checkReg3$cook.d | checkReg3$hat,]
+
+```
+
+
+Tarea para la casa:
+ * Vaya al http://ineidw.inei.gob.pe/ineidw/ y pruebe esta hipotesis:
+ 
+La Tasa de Mortalidad Infantil a nivel provincial está influenciada por Tasa de Empleo Vulnerable, el Porcentaje de personas de 3 años a más cuya lengua materna es quechua, aymara, ashaninka u otra lengua nativa, por el Porcentaje de viviendas cuyo régimen de tenencia de vivienda es propia, y si la provincia aloja a la capital de la region.
+
+Haga un reporte exhaustivo.
+_____
+
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
+

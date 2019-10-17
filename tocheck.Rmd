@@ -1,0 +1,6 @@
+to check
+
+```{r}
+https://m-clark.github.io/sem/graphical-models.html
+```
+
