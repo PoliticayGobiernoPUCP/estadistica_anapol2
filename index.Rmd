@@ -12,7 +12,7 @@
 -------
 
 
-## Guía del Curso
+## [Guía del Curso](https://www.mindmeister.com/es/1040166815?t=PPFHQuBAWR)
 
 
 ### Unidad 1: Colección y pre procesamiento de Datos
