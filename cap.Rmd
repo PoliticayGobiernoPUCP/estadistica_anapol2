@@ -1,0 +1,85 @@
+
+data:
+
+```{r}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vQaT5aBBkkmVveNfPJSUHzRk6G8tfUUtSh4cJaZPbEJVGc7RNBsHdkJRxLnHDZpayBYXmNHB20_gLXV/pub?gid=1481445534&single=true&output=csv"
+selec=read.csv(link, stringsAsFactors = F)
+```
+
+
+```{r}
+str(selec)
+```
+
+```{r}
+#selec=selec[,-c(1,2,4,10:13)]
+summary(selec)
+```
+
+
+
+```{r}
+str(selec)
+```
+
+```{r}
+library(cluster)
+set.seed(2019)
+
+#inputData=scale(inputData)
+g.dist = daisy(selec[,-c(1,2,3,4,10:13)])
+```
+
+```{r}
+library(factoextra)
+
+fviz_nbclust(selec[,-c(1,2,3,4,10:13)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+
+```{r}
+
+fviz_nbclust(selec[,-c(1,2,3,4,10:13)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+res.pam = pam(g.dist,3,cluster.only = F)
+res.agnes = hcut(g.dist, k = 3,hc_func='agnes',hc_method = "ward.D")
+res.diana = hcut(g.dist, k = 3,hc_func='diana')
+
+```
+
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+fviz_silhouette(res.pam)
+```
+
+
+* Evaluación gráfica para _agnes_:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+fviz_silhouette(res.agnes)
+
+```
+
+
+* Evaluación gráfica para _diana_:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+fviz_silhouette(res.diana)
+```
+
+```{r, fig.width=20, fig.height=20 , warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+# Visualize
+#fviz_dend(res.diana,k=3, cex = 0.7, horiz = T)
+```
+
+```{r}
+selec$clustDIV=res.diana$cluster
+```
+
+
+```{r}
+write.csv(selec,"ideclustered.csv")
+```
+

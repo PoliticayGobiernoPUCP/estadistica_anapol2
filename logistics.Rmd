@@ -1,0 +1,394 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Introducción a la Regresión Logística Multivariada</h2>  </header></center>
+____
+
+
+
+La data de este material está basada en el trabajo de [Cowles y Davis](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.2044-8309.1987.tb00769.x). Los datos y la metadata están disponibles [aqui](http://vincentarelbundock.github.io/Rdatasets/datasets.html).
+
+Por facilidad puedes verlos aqui en GoogleDocs:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTnBAuw8v3PgGMivOBI9tFfGjVrZsVnteUF2y44HjZneYoajlrb9k61kWN300Q-n1q04iy8_nsB68n_/pubhtml?widget=true&amp;headers=false"></iframe>
+
+Traigamos la data.
+
+
+```{r, echo=TRUE}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vTnBAuw8v3PgGMivOBI9tFfGjVrZsVnteUF2y44HjZneYoajlrb9k61kWN300Q-n1q04iy8_nsB68n_/pub?gid=1431542138&single=true&output=csv"
+vol=read.csv(link, stringsAsFactors = F)
+```
+
+Verificamos qué tipo de datos tenemos:
+
+```{r, echo=TRUE}
+str(vol)
+```
+
+Hay dos columnas que deben ser convertidas a categóricas.
+
+```{r, echo=TRUE}
+vol[,c(3,4)]=lapply(vol[,c(3,4)],as.factor)
+```
+
+Una vez formateada la data exploremos estadisticamente.
+
+```{r, echo=TRUE}
+summary(vol)
+```
+
+Las categóricas siempre se almacenan internamente como números, y éstos se asignarán por defecto en orden alfabético. De ahi que el primer nivel de cada categórica se conoce como la **categoría de referencia**.
+
+
+## 1. Usando la tabla de contingencia
+
+Queremos saber si ser mujer está relacionado con ser voluntario en estudios psicológicos. 
+
+```{r, echo=TRUE}
+ind=vol$sex # a la columna
+dep=vol$volunteer # a la fila
+volsexTable=table(dep,ind,dnn = c('volunteer','sex'))
+
+### suma de columna
+addmargins(volsexTable,margin = 1)
+```
+
+Saber si ser mujer está relacionado con ser voluntario implica saber dos cosas más:
+
+* Si elijo una mujer a azar, qué probabilidad se tiene  que ésta sea voluntaria. 
+* Cómo comparo el "voluntarismo" de la mujer con la del hombre.
+
+### 1.1. Probabilidades y ODDS
+
+#### A. Caso de la mujer:
+
+* La **probabilidad** que una mujer sea voluntaria, la división del ser voluntaria entre el total de mujeres:
+
+```{r, echo=TRUE}
+probMV=volsexTable[2,1]/sum(volsexTable[,1])
+probMV
+```
+
+La probabilidad es un valor qu va de 0 a 1. Recuperemos la división así:
+
+```{r, echo=TRUE}
+library(MASS)
+fractions(probMV)
+```
+
+
+* Representeos el **odds** que sea voluntaria, la división entre ser o no ser voluntaria:
+```{r, echo=TRUE}
+volsexTable[2,1]/volsexTable[1,1]
+```
+
+Que se origina de:
+
+```{r, echo=TRUE}
+fractions(volsexTable[2,1]/volsexTable[1,1])
+```
+
+El _odds_ suele representarse además como la razón entre dos probabilidades: la probabilidad que ocurra un evento dividido por la probabilidad que NO ocurra ese evento:
+
+```{r, echo=TRUE}
+OddsMV=probMV/(1-probMV)
+OddsMV
+```
+
+#### B. Caso del hombre:
+
+* Probabilidad que una hombre sea voluntario
+
+```{r, echo=TRUE}
+probHV=volsexTable[2,2]/sum(volsexTable[,2])
+probHV
+```
+
+O...
+
+```{r, echo=TRUE}
+fractions(probHV)
+```
+
+* El odds que hombre sea voluntario:
+```{r, echo=TRUE}
+OddsHV=probHV/(1-probHV)
+OddsHV
+```
+O...
+
+```{r, echo=TRUE}
+fractions(OddsHV)
+```
+
+#### C. Comparando Mujer y Hombre:
+
+Para saber qué diferencia produce el sexo en el voluntariado, podemos dividir los odds, lo que nos da el **odds ratio**:
+
+```{r, echo=TRUE}
+OddsMV/OddsHV
+```
+
+Con ese valor, ya sabemos que ser mujer participa más en voluntariado que los hombres. El odds ratio (OR) puede ir de 0 a infinito. Un OR de 1 implica que no hay diferencias.
+
+```{r, echo=TRUE}
+fractions(OddsMV/OddsHV)
+```
+
+Esto informa que la cantidad de mujeres que encontrarias de voluntarias ante una cantidad de hombres voluntarios.
+
+
+### 1.2. Porcentajes y gráficas
+
+Veamos la tabla de contingencia con los porcentajes por columna:
+
+```{r, echo=TRUE}
+prop.table(volsexTable,margin = 2)
+```
+
+Grafiquemoslo:
+
+```{r, echo=TRUE}
+mosaicplot( t(volsexTable),col = c("orange", "green"))
+```
+
+A pesar de la diferencia, ¿será ésta significativa?
+
+## 2. Regresión Logística
+
+La regresión logística modela el comportamiento de la probabilidad del evento de interés:
+
+$${log}(\frac{{p}}{{1 – p}}) = \beta_0 + \beta_ix_i$$
+
+La parte izquierda representa esa probabilidad pero en término del odds. La parte derecha de la ecuación es igual a la ecuación de una recta, pero estamos modelando al logaritmo del odds.
+
+```{r, echo=TRUE}
+### primer modelo:
+#data
+vars1=vol[,c("volunteer","sex")]
+#regresion
+rlog1=glm(volunteer~., data=vars1,family = binomial)
+```
+
+```{r, message=FALSE, echo=TRUE, results='asis'}
+library(stargazer)
+#resultado
+stargazer(rlog1,type="html")
+```
+
+
+Los coeficientes, como se vió en la ecuación anterior, están modelando al logaritmo del odds de ser voluntario.
+
+El resultado anterior ha usado a mujer como referencia: cuanto afecta al log odds de ser voluntario el ser hombre en comparación con ser mujer (la referencia). Ahora sabes que ser hombre disminuye la probabilidad de ser voluntario. Ajustemos la referencia para ver el efecto de mujer:
+
+```{r, echo=TRUE}
+vol$sex=relevel(vol$sex,ref = "male")
+vars1=vol[,c("volunteer","sex")]
+rlog1=glm(volunteer~., data=vars1,family = binomial)
+
+```
+
+
+```{r, message=FALSE, echo=TRUE, results='asis'}
+#resultado
+stargazer(rlog1,type="html")
+```
+Vemos que sexo tiene efecto, y el simbolo del coeficiente propone que el efecto es positivo. Ese valor como modela a un logaritmo no es fácil de interpretar. Pero, si le aplicas exponencial, hallarás un valor conocido:
+
+```{r, echo=TRUE}
+sexF=coef(rlog1)["sexfemale"]
+exp(sexF)
+```
+
+Ahora sabemos que el efecto de sexo es significativo gracias a la regresión logística, algo que no teníamos con las tablas de contingencia.
+
+Además, con la regresión logística podemos tener predictores numéricos, lo que escapa de la utilidad de las tablas de contingencia:
+
+```{r, echo=TRUE}
+vars2=vol[,c("volunteer","sex","neuroticism")]
+rlog2=glm(volunteer~., data=vars2,family = binomial)
+```
+
+```{r, echo=TRUE}
+vars3=vol[,c("volunteer","sex","neuroticism","extraversion")]
+rlog3=glm(volunteer~., data=vars3,family = binomial)
+```
+
+Veamos todos:
+
+```{r, results='asis', echo=TRUE, message=FALSE}
+library(stargazer)
+
+stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits = 1,digit.separator="")
+```
+
+Parece que el modelo 2  no es adecuado, revisemos usando el likelihood ratio test (que reemplaza al anova):
+
+```{r, echo=TRUE, message=FALSE}
+library(lmtest)
+#stargazer(lrtest(rlog1,rlog2, rlog3),type="html")
+
+lrtest(rlog1,rlog2, rlog3)
+```
+
+Como el tercero es el mejor, obtengamos sus coeficientes en odds ratio:
+
+```{r, echo=TRUE, message=FALSE}
+exp(cbind(OR = coef(rlog3), confint(rlog3)))
+```
+
+
+
+
+### Evaluando
+
+Calculemos las probabilidades predecidas:
+
+```{r, echo=TRUE, message=FALSE}
+predicted <- plogis(predict(rlog3, vars3[,-1]))
+```
+
+Veamos la matriz de confusión:
+```{r, echo=TRUE, message=FALSE}
+library(InformationValue)
+confusionMatrix(vars3$volunteer, predicted)
+```
+
+La antidiagonal debería ser 0s si fuera una predicción perfecta.
+
+## Resumenes gráficos
+
+Veamos la relación de extraversión y sexo con la predicción:
+
+```{r, echo=TRUE, message=FALSE}
+library(ggplot2)
+ggplot(vars3, aes(x = extraversion, y = predicted))  + 
+    geom_smooth(aes(colour = sex),size = 1)
+```
+
+Veamos la relación de neuroticismo y sexo con la predicción:
+
+```{r, echo=TRUE, message=FALSE}
+ggplot(vars3, aes(x = neuroticism, y = predicted))  + geom_smooth(aes(colour = sex),size = 1)
+```
+
+El efecto no es lineal, por lo que le damos una mirada a la interección:
+
+```{r, echo=TRUE, message=FALSE}
+ggplot(vars3, aes(x = neuroticism*extraversion, y = predicted))  + geom_smooth(aes(colour = sex),size = 1)
+```
+
+Evaluemos si los valores de neuroticism están relacionados con los de extraversion
+```{r, echo=TRUE}
+rlog4=glm(volunteer ~ sex + neuroticism*extraversion,
+                  data=vars3, family=binomial)
+```
+
+```{r, message=FALSE, echo=TRUE, results='asis'}
+#resultado
+stargazer(rlog4,type="html")
+```
+
+Pues parece que si:
+
+```{r, echo=TRUE, message=FALSE}
+library(effects)
+plot(Effect(focal.predictors = c("neuroticism","extraversion","sex"), 
+            mod = rlog4),multiline=T)
+```
+
+Nos quedaremos con este modelo si es realmente mejor:
+```{r, echo=TRUE}
+#stargazer(lrtest(rlog3,rlog4),type="html")
+# library(xtable)
+# 
+# print(xtable(lrtest(rlog3,rlog4)), type = "html")
+
+lrtest(rlog3,rlog4)
+```
+
+Siendo que sí lo es, preparemos las ecuaciones:
+
+
+
+
+$$Pr(VOLUNT=1|X_i) = {\frac{exp(\beta_0 + \beta_1SEX + \beta_2NEU + \beta_3EXTRAV + \beta_4EXTRAV*NEU)}{1 + exp (\beta_0 + \beta_1SEX + \beta_2NEU + \beta_3EXTRAV + \beta_4EXTRAV*NEU)}}$$
+
+
+Evaluamos nuevamente:
+
+```{r, echo=TRUE}
+predicted2 <- plogis(predict(rlog4, vars3[,-1]))
+```
+
+```{r, echo=TRUE}
+library(InformationValue)
+confusionMatrix(vars3$volunteer, predicted2)
+```
+
+La mejora se nota en la matriz de confusión.
+
+
+
+
+
+```{r model1_interpre_margins}
+# interpracion usando marginal effects:
+library(margins)
+
+(model1M = margins(model1))
+# for punto que suba IDE e IDH, como afecta en promedio la probabilidad que gane Keiko?
+```
+
+```{r}
+(mr=summary(model1M))
+```
+
+
+
+```{r}
+library(ggplot2)
+base= ggplot(mr,aes(x=factor, y=AME)) + geom_point() 
+base
+
+```
+```{r}
+base +  geom_errorbar(aes(ymin=lower, ymax=upper))
+```
+## Predicciones
+
+
+Predecir probabilidad de voluntariado de una mujer con nivel de neuroticismo=13 y extraversion=8: 
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female")), 
+                      neuroticism=13, extraversion=8)
+predict(object = rlog4, newdata = ndata, type = "response")
+```
+
+Predecir probabilidad de voluntariado de una mujer y hombre con los mismos niveles anteriores de neuroticismo y extraversion.
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female","male")), 
+                      neuroticism=13, extraversion=8)
+predict(object = rlog4, newdata = ndata, type = "response")
+```
+
+Predecir probabilidad de voluntariado de dos mujeres,  con nivel de neuroticismo de 13 y 10, y extraversion de 8 y 21, respectivamente: 
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female","male")), 
+                      neuroticism=c(13,10), extraversion=c(8,21))
+predict(object = rlog4, newdata = ndata, type = "response")
+```
