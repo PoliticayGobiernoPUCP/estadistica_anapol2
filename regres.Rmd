@@ -308,3 +308,9 @@ stargazer(reg1,reg2,reg3, type = "html", title = "Modelos planteadas",digits = 2
 
 <br></br>
 
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)

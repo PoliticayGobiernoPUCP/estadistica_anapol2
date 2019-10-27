@@ -481,6 +481,7 @@ checkReg3[checkReg3$cook.d | checkReg3$hat,]
 
 
 Tarea para la casa:
+
  * Vaya al http://ineidw.inei.gob.pe/ineidw/ y pruebe esta hipotesis:
  
 La Tasa de Mortalidad Infantil a nivel provincial está influenciada por Tasa de Empleo Vulnerable, el Porcentaje de personas de 3 años a más cuya lengua materna es quechua, aymara, ashaninka u otra lengua nativa, por el Porcentaje de viviendas cuyo régimen de tenencia de vivienda es propia, y si la provincia aloja a la capital de la region.
