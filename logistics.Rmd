@@ -205,21 +205,29 @@ mosaicplot( t(volsexTable),col = c("orange", "green"))
 
 A pesar de la diferencia, ¿será ésta significativa?
 
-## 2. Regresión Logística
+# Parte 3. Regresión Logística 
+
+
 
 La regresión logística modela el comportamiento de la probabilidad del evento de interés:
 
 $${log}(\frac{{p}}{{1 – p}}) = \beta_0 + \beta_ix_i$$
 
-La parte izquierda representa esa probabilidad pero en términos del odds. La parte derecha de la ecuación es igual a la ecuación de una recta, pero estamos modelando al logaritmo del odds.
+La parte izquierda representa esa probabilidad pero en términos del odds. La parte derecha de la ecuación es igual a la ecuación de una recta, pero estamos modelando al logaritmo del odds. Veamos cómo calcularla en R:
 
 ```{r, echo=TRUE}
 ### primer modelo:
-#data
+#data como subset
 vars1=vol[,c("volunteer","sex")]
+
 #regresion
 rlog1=glm(volunteer~., data=vars1,family = binomial)
+
+#resultado clásico:
+summary(rlog1)
 ```
+
+Veamos ahora el resultado con mejor formato:
 
 ```{r, message=FALSE, echo=TRUE, results='asis'}
 # recuerda poner: ```{r, results='asis'}
@@ -231,28 +239,34 @@ stargazer(rlog1,type="html")
 
 Los coeficientes, como se vió en la ecuación anterior, están modelando al logaritmo del odds de ser voluntario.
 
-El resultado anterior ha usado a mujer como referencia: cuanto afecta al log odds de ser voluntario el ser hombre en comparación con ser mujer (la referencia). Ahora sabes que ser hombre disminuye la probabilidad de ser voluntario. Ajustemos la referencia para ver el efecto de mujer:
+El resultado anterior ha usado a mujer como _referencia_: nos informa cuánto afecta al log odds de ser voluntario el ser hombre en comparación con ser mujer (la referencia). Ahora sabes que ser hombre disminuye la probabilidad de ser voluntario. Ajustemos la referencia para ver el efecto de mujer:
 
 ```{r, echo=TRUE}
+# nueva referencia
 vol$sex=relevel(vol$sex,ref = "male")
-vars1=vol[,c("volunteer","sex")]
-rlog1=glm(volunteer~., data=vars1,family = binomial)
 
+# rehago subset
+vars1=vol[,c("volunteer","sex")]
+
+rlog1=glm(volunteer~., data=vars1,family = binomial)
 ```
 
+
+Los resultados van a continuación:
 
 ```{r, message=FALSE, echo=TRUE, results='asis'}
 #resultado
 stargazer(rlog1,type="html")
 ```
-Vemos que sexo tiene efecto, y el simbolo del coeficiente propone que el efecto es positivo. Ese valor como modela a un logaritmo no es fácil de interpretar. Pero, si le aplicas exponencial, hallarás un valor conocido:
+
+Vemos que sexo tiene efecto, y el símbolo del coeficiente propone que el efecto es positivo. Ese valor, como modela a un logaritmo, no es fácil de interpretar. Pero, si le aplicas exponencial, hallarás un valor conocido:
 
 ```{r, echo=TRUE}
 sexF=coef(rlog1)["sexfemale"]
 exp(sexF)
 ```
 
-Ahora sabemos que el efecto de sexo es significativo gracias a la regresión logística, algo que no teníamos con las tablas de contingencia.
+Ahora sabemos que el efecto de sexo es significativo gracias a la regresión logística, algo que no sabíamos con las tablas de contingencia.
 
 Además, con la regresión logística podemos tener predictores numéricos, lo que escapa de la utilidad de las tablas de contingencia:
 
@@ -277,7 +291,7 @@ stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits =1,digit.separator
 <br>
 <br>
 
-**Comparando modelos**
+## 1. Comparando modelos
 
 Parece que el modelo 2  no es adecuado, revisemos usando el likelihood ratio test (que reemplaza al anova):
 
@@ -296,7 +310,7 @@ pander(lrtest(rlog1,rlog2, rlog3))
 ```
 
 
-### Evaluando modelo seleccionado
+## 2.  Evaluando modelo seleccionado
 
 Calculemos las probabilidades predecidas:
 
@@ -388,7 +402,8 @@ Cambiando betas:
 
 $$Pr(VOLUNT=1|X_i) = {\frac{exp(-0.958445 + 0.215873SEX_{female} + 0.004887NEU + 0.063033EXTRAV)}{1 + exp (-0.958445 + 0.215873SEX_{female} + 0.004887NEU + 0.063033EXTRAV)}}$$
 
-## Predicciones del modelo
+
+## 3.  Efectos Marginales
 
 Recuerdese que tenemos en **predictedUP** las probabilidades de cada caso:
 ```{r}
@@ -427,8 +442,7 @@ Aqui el efecto y su intervalo de confianza:
 base +  geom_errorbar(aes(ymin=lower, ymax=upper))
 ```
 
-
-## Predicciones
+## 4. Prediciendo valores concretos
 
 
 Predecir probabilidad de voluntariado de una mujer con nivel de neuroticismo=13 y extraversion=8: 
