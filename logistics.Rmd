@@ -317,7 +317,6 @@ Las tres regresiones presentan valores diferentes del criterio de información d
 
 ```{r, echo=TRUE, message=FALSE}
 library(lmtest)
-#stargazer(lrtest(rlog1,rlog2, rlog3),type="html")
 
 lrtest(rlog1,rlog2, rlog3)
 ```
