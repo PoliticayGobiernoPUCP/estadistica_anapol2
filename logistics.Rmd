@@ -1,3 +1,19 @@
+<style>
+
+table, td, th {
+  border: none;
+  padding-left: 1em;
+  padding-right: 1em;
+  min-width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+</style>
+
+
 <center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
 
 <center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
@@ -216,6 +232,10 @@ $${log}(\frac{{p}}{{1 – p}}) = \beta_0 + \beta_ix_i$$
 La parte izquierda representa esa probabilidad pero en términos del odds. La parte derecha de la ecuación es igual a la ecuación de una recta, pero estamos modelando al logaritmo del odds. Veamos cómo calcularla en R:
 
 ```{r, echo=TRUE}
+### semilla
+
+set.seed(2019)
+
 ### primer modelo:
 #data como subset
 vars1=vol[,c("volunteer","sex")]
@@ -285,7 +305,7 @@ Veamos todos:
 ```{r, results='asis', echo=TRUE, message=FALSE}
 library(stargazer)
 
-stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits =1,digit.separator="")
+stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits =3,digit.separator="")
 ```
 
 <br>
@@ -293,7 +313,7 @@ stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits =1,digit.separator
 
 ## 1. Comparando modelos
 
-Parece que el modelo 2  no es adecuado, revisemos usando el likelihood ratio test (que reemplaza al anova):
+Las tres regresiones presentan valores diferentes del criterio de información de Akaike (AIC), se considera que un modelo es mejor si tiene un AIC menor a los demás. Esto sugiere qu el tercer modelo es el mejor y el segundo el peor. Como los valores del AIC están muy cercanos confirmemos usando el test de razón de verosimilitud (likelihood ratio test -LRT):
 
 ```{r, echo=TRUE, message=FALSE}
 library(lmtest)
@@ -306,13 +326,15 @@ O alternativamente:
 
 ```{r, results='asis'}
 library(pander)
-pander(lrtest(rlog1,rlog2, rlog3))
+pander(lrtest(rlog1,rlog2, rlog3),caption = "LRT para los tres modelos")
 ```
+
+Como vemos, pasar del modelo 1 al modelo 2 es no significativo (probabilidad es mayor a 0.05), por lo que no se rechaza la hipotesis nula de igualdad de modelos. Pero sí es significativo pasar del modelo 2 al modelo 3.
 
 
 ## 2.  Evaluando modelo seleccionado
 
-Calculemos las probabilidades predecidas:
+Calculemos las probabilidades predecidas de voluntariado:
 
 ```{r, echo=TRUE, message=FALSE}
 predicted <- plogis(predict(rlog3, vars3[,-1]))
@@ -331,59 +353,23 @@ Dos medidas importantes es saber qué tanto acertamos predecir el evento:
 sensitivity(actuals = as.numeric(vars3$volunteer),predictedScores = predicted)
 ```
 
-Y que tanto acertamos predecir la no ocurrencia del evento:
+Y qué tanto acertamos predecir la no ocurrencia del evento:
 
 ```{r}
 specificity(actuals = as.numeric(vars3$volunteer),predictedScores = predicted)
 ```
 
-Esto se podría debee básicamente a un desbalance:
 
-```{r}
-table(vars3$volunteer)
-```
-
-Con este codigo balancearemos:
-```{r, message=FALSE}
-library(caret)
-vars3UP=upSample(vars3, vars3$volunteer)
-```
-
-Recalculemos regresión:
-
-```{r, results='asis'}
-vars3UP=vars3UP[,c("volunteer","sex","neuroticism","extraversion")]
-rlog3UP=glm(volunteer~., data=vars3UP,family = binomial)
-stargazer(rlog3UP,type = "html",no.space = F,digits =1,digit.separator="")
-```
-
-
-
-```{r, echo=TRUE, message=FALSE}
-predictedUP <- plogis(predict(rlog3UP, vars3UP[,-1]))
-InformationValue::confusionMatrix(vars3UP$volunteer, predictedUP)
-```
-
-Y ahora:
-```{r}
-InformationValue::sensitivity(actuals = as.numeric(vars3UP$volunteer),predictedScores = predictedUP)
-```
-
-Y que tanto acertamos predecir la no ocurrencia del evento:
-
-```{r}
-InformationValue::specificity(actuals = as.numeric(vars3UP$volunteer),predictedScores = predictedUP)
-```
 
 Si nos quedamos con este modelo, obtengamos sus coeficientes en odds ratio:
 
 ```{r, echo=TRUE, message=FALSE}
-exp(cbind(OR = coef(rlog3UP), confint(rlog3UP)))
+exp(cbind(OR = coef(rlog3), confint(rlog3)))
 ```
 
 Esto quiere decir que:
 
-* Ser MUJER aumenta el odds ratio de ser voluntario en 0.24.
+* Ser MUJER tiene un odds ratio mayor al del HOMBRE en 0.26.
 * El nivel de neuroticismo no aumenta el odds ratio de ser voluntario.
 * El nivel de extraversion aumenta el odds ratio de ser voluntario en 0.06.
 
@@ -391,33 +377,57 @@ Nótese que los valores que he escrito se calculan asi: 1-OR; de ahí que si un 
 
 
 
-Siendo que sí lo es, preparemos las ecuaciones que nos dan las probabilidades:
-
-
+Preparemos las ecuaciones que nos dan las probabilidades a partir de los coeficientes de regresión:
 
 
 $$Pr(VOLUNT=1|X_i) = {\frac{exp(\beta_0 + \beta_1SEX_{female} + \beta_2NEU + \beta_3EXTRAV )}{1 + exp (\beta_0 + \beta_1SEX + \beta_2NEU + \beta_3EXTRAV)}}$$
 
 Cambiando betas:
 
-$$Pr(VOLUNT=1|X_i) = {\frac{exp(-0.958445 + 0.215873SEX_{female} + 0.004887NEU + 0.063033EXTRAV)}{1 + exp (-0.958445 + 0.215873SEX_{female} + 0.004887NEU + 0.063033EXTRAV)}}$$
+$$Pr(VOLUNT=1|X_i) = {\frac{exp(-1.35 + 0.23SEX_{female} + 0.006NEU + 0.06EXTRAV)}{1 + exp (-1.35 + 0.23SEX_{female} + 0.006NEU + 0.06EXTRAV)}}$$
+
+## 3. Prediciendo valores concretos
 
 
-## 3.  Efectos Marginales
+Predecir probabilidad de voluntariado de una mujer con nivel de neuroticismo=13 y extraversion=8: 
 
-Recuerdese que tenemos en **predictedUP** las probabilidades de cada caso:
-```{r}
-head(predictedUP)
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female")), 
+                      neuroticism=13, extraversion=8)
+predict(object = rlog3, newdata = ndata, type = "response")
 ```
 
-Pero NO sabemos cuando afecta cada variable la probabilidad de ser voluntario. Para ello pedimos efectos marginales.
+Predecir probabilidad de voluntariado de una mujer y hombre con los mismos niveles anteriores de neuroticismo y extraversion.
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female","male")), 
+                      neuroticism=13, extraversion=8)
+predict(object = rlog3, newdata = ndata, type = "response")
+```
+
+Predecir probabilidad de voluntariado de dos mujeres,  con nivel de neuroticismo de 13 y 10, y extraversion de 8 y 21, respectivamente: 
+```{r, echo=TRUE}
+ndata <- data.frame(sex=factor(c("female","male")), 
+                      neuroticism=c(13,10), extraversion=c(8,21))
+predict(object = rlog3, newdata = ndata, type = "response")
+```
+
+
+## 4.  Efectos Marginales
+
+Recuerdese que tenemos en **predicted** las probabilidades de cada caso:
+
+```{r}
+head(predicted)
+```
+
+Pero NO sabemos cuando afecta cada variable la probabilidad de ser voluntario en promedio. Para ello pedimos efectos marginales.
 
 
 ```{r  model1_interpre_margins}
 # interpracion usando marginal effects:
 library(margins)
 # 
-(modelUP = margins(rlog3UP))
+(model = margins(rlog3))
 
 ```
 
@@ -425,14 +435,14 @@ Esto sí indica cuanto afecta cada variable la probabilidad de ser voluntario.
 
 Para graficar veamos un resumen:
 ```{r}
-(marginsUP=summary(modelUP))
+(margins=summary(model))
 ```
 
 Luego, aqui vemos efecto:
 
 ```{r}
 library(ggplot2)
-base= ggplot(marginsUP,aes(x=factor, y=AME)) + geom_point()
+base= ggplot(margins,aes(x=factor, y=AME)) + geom_point()
 base
 
 ```
@@ -442,30 +452,7 @@ Aqui el efecto y su intervalo de confianza:
 base +  geom_errorbar(aes(ymin=lower, ymax=upper))
 ```
 
-## 4. Prediciendo valores concretos
 
-
-Predecir probabilidad de voluntariado de una mujer con nivel de neuroticismo=13 y extraversion=8: 
-
-```{r, echo=TRUE}
-ndata <- data.frame(sex=factor(c("female")), 
-                      neuroticism=13, extraversion=8)
-predict(object = rlog3UP, newdata = ndata, type = "response")
-```
-
-Predecir probabilidad de voluntariado de una mujer y hombre con los mismos niveles anteriores de neuroticismo y extraversion.
-```{r, echo=TRUE}
-ndata <- data.frame(sex=factor(c("female","male")), 
-                      neuroticism=13, extraversion=8)
-predict(object = rlog3UP, newdata = ndata, type = "response")
-```
-
-Predecir probabilidad de voluntariado de dos mujeres,  con nivel de neuroticismo de 13 y 10, y extraversion de 8 y 21, respectivamente: 
-```{r, echo=TRUE}
-ndata <- data.frame(sex=factor(c("female","male")), 
-                      neuroticism=c(13,10), extraversion=c(8,21))
-predict(object = rlog3UP, newdata = ndata, type = "response")
-```
 
 Tarea para la casa:
 

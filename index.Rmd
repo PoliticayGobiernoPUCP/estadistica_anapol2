@@ -32,7 +32,7 @@
 
 ### Unidad 3: Modelos Estadístico Inferenciales
 * [Regresión Lineal y sus diagnósticos](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/regresion.html)
-* Regresión Logística
+* [Regresión Logística](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/logistics.html)
 * Alternativas a la regresión lineal 
 
 ### Unidad 4: Presentación de reportes estadísticos
