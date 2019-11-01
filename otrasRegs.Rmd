@@ -1,3 +1,23 @@
+
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Otros modelos</h2>  </header></center>
+____
+
 Traigamos varios indicadores e indices de Perú:
 
 <iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRIELLZGB7UZfNMSHmPExFW6BsCwjWvCcNJV4uvjRd9Tnwq0DqveCBOhJhKwWaRxtPedAxrI6rHY9Ps/pubhtml?widget=true&amp;headers=false"></iframe>
@@ -100,7 +120,7 @@ library(lavaan)
 
 # 2. Calculos
 
-regLat<-sem(modelo, data=perudat)#, fixed.x=FALSE)
+regLat<-sem(modelo, data=perudat, fixed.x=FALSE)
 
 # 3. Resultados
 
@@ -114,6 +134,7 @@ library(semPlot)
 semPaths(regLat ,layout='tree2',whatLabels = 'std')
 
 ```
+
 ```{r}
 modelo2= 
         'ideL =~ identidad + salud + educacion + saneamient + electrific
@@ -133,3 +154,35 @@ semPaths(regLat2 ,layout='tree2',whatLabels = 'std')
 
 ```
 
+
+
+
+```{r}
+varTable(regLat2)
+```
+
+```{r}
+library(dplyr)
+library(magrittr)
+perudat <- perudat %>% mutate(percapitaf = percapitaf/10)
+perudat <- perudat %>% mutate(educa = educa*10)
+perudat <- perudat %>% mutate(fecundidad = fecundidad*10)
+perudat <- perudat %>% mutate(mortalidad = mortalidad*100)
+```
+
+
+```{r}
+
+
+# 2. Calculos
+
+regLat2<-sem(modelo2, data=perudat, fixed.x=FALSE)
+
+fitmeasures(regLat2)
+```
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)
