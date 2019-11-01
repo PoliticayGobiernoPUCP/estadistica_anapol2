@@ -35,7 +35,7 @@ ____
 
 Tenemos la siguiente data:
 
-<iframe width="800" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQSlGaMI8Q8qlXI0Bp3m7BQcEh8ZLzaP7RymVtRYkg3ah1sZVlCi6-HmeKCic1RjfuH3gL_wrbMms88/pubhtml?widget=true&amp;headers=false"></iframe>
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQSlGaMI8Q8qlXI0Bp3m7BQcEh8ZLzaP7RymVtRYkg3ah1sZVlCi6-HmeKCic1RjfuH3gL_wrbMms88/pubhtml?widget=true&amp;headers=false"></iframe>
 
 
 ## 1. Introducción:
@@ -49,6 +49,12 @@ carcel=read.csv(link, stringsAsFactors = T)
 Veamos cómo lo ha traido R:
 ```{r}
 str(carcel)
+```
+
+Formateemos:
+```{r}
+carcel[,c(2,3,5,6,7,8)]=lapply(carcel[,c(2,3,5,6,7,8)], as.factor)
+carcel$nivelEduca=as.ordered(carcel$nivelEduca)
 ```
 
 El propósito de este trabajo es entender por qué los presos dejados en libertad vuelven a delinquir y retornan a la carcel. 
@@ -74,55 +80,56 @@ Hasta ahora sabemos regresión Gaussiana o usar Regresión Logística.
 
 * Si nos interesa el efecto de _apoyo financiero_, _nivel educativo_ y _encarcelamientos previos_; podríamos plantearnos estas hipotesis:
 
-H1_1: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera directa si tuvo financiamiento.
-H1_2: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera directa por su nivel educativo.
-H1_3: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera inversa por sus encarcelamientos previos.
+  - $H1_1$: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera directa si tuvo financiamiento.
+  - $H1_2$: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera directa por su nivel educativo.
+  - $H1_3$: El tiempo que permanece en libertad un reo hasta que vuelve a la carcel está afectado de manera inversa por sus encarcelamientos previos.
 
-A partir de ello, podríamos plantearnos este modelo:
+A partir de ello, podríamos plantearnos este modelo Gaussiano para testear las tres hipótesis en simultaneo:
 
 ```{r}
 #
-hipotesis1=formula(semanasLibre~as.factor(tuvoApoyoDinero)+nivelEduca+vecesEnCarcel)
+hipotesis1=formula(semanasLibre~tuvoApoyoDinero+nivelEduca+vecesEnCarcel)
 #
 gauss=lm(hipotesis1,data=carcel)
 #
 summary(gauss)
 ```
 
-La regresión acepta la H1_1 con significancia de 0.1, la H1_3  con significancia de 0.05, pero rechazaríamos la H1_2.
+La regresión acepta la $H1_1$ con significancia de 0.1, la $H1_3$  con significancia de 0.05, pero rechazaríamos la $H1_2$.
 
-Hay un pequeño error, si es que nivel educativo debió ser considerada ordinal, si lo corregimos sale lo mismo:
+Nota que la variable ordinal viene con unas letras L-Q, etc. Esto informa si el efecto de la ordinal es lineal, cuadrático, cúbico, etc. Esto no ocurre si el predictor fuera nominal:
 
 ```{r}
 #
-hipotesis1=formula(semanasLibre~as.factor(tuvoApoyoDinero)+as.ordered(nivelEduca)+vecesEnCarcel)
-#
-gauss=lm(hipotesis1,data=carcel)
+hipotesis1=formula(semanasLibre~tuvoApoyoDinero+nivelEduca+vecesEnCarcel)
+# efecto nominal
+gauss=lm(hipotesis1,data=carcel,contrasts=list(nivelEduca="contr.treatment"))
 #
 summary(gauss)
 ```
 
-La diferencia es que en esta ocasión cada nivel de la ordinal se compara con el nivel más bajo: el NIVEL EDUCATIVO "2" afectaria a la dependiente en 1.06 en comparacion con el nivel "1", y el nivel educativo "4" afectaria a la dependiente en -0.5 en compración con el nivel "1", pero esos efecto no son significativos.
+La diferencia es que en esta ocasión cada nivel de la ordinal (ahora ordinal) se compara con el nivel más bajo: _si hubiera_ significativa esta variable, el NIVEL EDUCATIVO "2" afectaria a la dependiente en -3.7 en comparacion con el nivel "1", y el nivel educativo "3" afectaria a la dependiente en -3.4 en comparación con el nivel "1", etc..
 
 Otra aparente alternativa, si quisieramos usar regresión logística binaria podría ser usar la variable "fue arrestado" como dependiente:
 
 ```{r}
 #
-hipotesis2=formula(as.factor(fueArrestado)~as.factor(tuvoApoyoDinero)+as.ordered(nivelEduca)+vecesEnCarcel)
+hipotesis2=formula(fueArrestado~tuvoApoyoDinero+nivelEduca+vecesEnCarcel)
 #
-logisbin=glm(hipotesis2,data=carcel, family = "binomial")
+logisbin=glm(hipotesis2,data=carcel, family = binomial)
 #
 summary(logisbin)
 ```
 
+
 La regresión acepta la H1_1 y la H1_3 con significancia de 0.05, pero rechazaríamos la  H1_2.
 
-¿Qué problema no estamos advistiendo?
+¿Qué problema no estamos advirtiendo?
 
 1. Que la duración es un evento condicionado a ser arrestado, ambas son un todo. Algo dura hasta que algo sucede.
-2. Que el hecho de ser arrestado es un evento, NO una característica, y lo que es más el NO ser arrestado es algo que puede variar en el tiempo, sólo que la investigación acabó y el liberado aun seguía libre.
+2. Que el hecho de ser arrestado es un evento, NO una característica, y, lo que es más, el NO ser arrestado es algo que puede variar en el tiempo, sólo que la investigación acabó y el liberado aun seguía libre.
 
-En situaciones que combinan duración y observación de eventos, debemos usar el *EHA* o **Análisis de Evantos Históricos** cuando queremos examinar  la _duración_, es decir, el tiempo que demora algo en ocurrir. Esta técnica funciona de tal manera que puede lidiar con el hecho de _no darse_ el evento, en este caso, no ser arrestado.
+En situaciones que combinan duración y observación de eventos, debemos usar el *EHA* o **Análisis de Eventos Históricos**. Esta técnica funciona de tal manera que puede lidiar con el hecho de _no darse_ el evento, en este caso, no ser arrestado: esto representa un caso censurado.
 
 
 ## 2. Analizando Eventos Históricos
@@ -132,7 +139,8 @@ El primer paso para usar EHA, es indicarle a R que trate a la data de esa manera
 * Creación del objeto _survival_:
 ```{r, eval=TRUE}
 library(survival)
-carcel$survival=with(carcel,Surv(time = semanasLibre,event =  fueArrestado))
+# note que necesito el factor como numérico
+carcel$survival=with(carcel,Surv(time = semanasLibre,event =  as.numeric(fueArrestado)))
 # que es:
 carcel$survival
 ```
@@ -149,20 +157,24 @@ library(ggfortify)
 KM.generico = survfit(survival ~ 1, data = carcel)
 
 ###
-ejeX='SEMANAS HASTA SER RE-ARRESTADO\n curva cae cuando alguien es arrestado'
-ejeY='Prob(PERMANECER LIBRE)'
+
+ejeX='SEMANAS\n curva cae cuando alguien es arrestado'
+ejeY='Probabilidad \nPERMANECER LIBRE)'
 titulo="Curva de Sobrevivencia (permanecer libre)"
 autoplot(KM.generico,xlab=ejeX,ylab=ejeY, main = titulo,conf.int = F)
 ```
 
-La gráfica anterior nos da una idea de como se comporta esta población; pero sería interesante ver una comparación:
+La gráfica anterior nos da una idea de cómo se comporta esta población; por ejemplo, la gráfica nos dice que si pasan 40 semanas, la probabilidad de volver casi 80%. 
+
+El análisis KM es más interesante para ver una comparación:
+
 ```{r, eval=TRUE}
-KM_H1=formula(survival ~ as.factor(tuvoApoyoDinero))
+KM_H1=formula(survival ~ tuvoApoyoDinero)
 
 KM.fondos = survfit(KM_H1, data = carcel)
 
 ###
-ejeX='SEMANAS HASTA SER RE-ARRESTADO\n curva cae cuando alguien es arrestado'
+ejeX='SEMANAS\n curva cae cuando alguien es arrestado'
 ejeY='Prob(PERMANECER LIBRE)'
 titulo="Curva de Sobrevivencia (permanecer libre)"
 autoplot(KM.fondos,xlab=ejeX,ylab=ejeY, main = titulo,conf.int = F)
@@ -171,40 +183,47 @@ autoplot(KM.fondos,xlab=ejeX,ylab=ejeY, main = titulo,conf.int = F)
 La posición de las curvas nos hace pensar que le cuesta más a los que no tuvieron fondos permanecer libres. Para evitar afirmar tal cosa, podemos hacer la prueba de Mantel-Cox (LogRanK):
 
 ```{r, eval=TRUE}
-survdiff(KM_H1, data = carcel)
+(LogRank=survdiff(KM_H1, data = carcel))
 ```
 
-Siendo que la H0 de KM: no hay diferencias entre grupos, con el p-valor obtenido dudamos afirmar que hay diferencias. Este gráfico aclara por qué:
+El _p-valor_ sin redondear es:
+
+```{r}
+1 - pchisq(LogRank$chisq, length(LogRank$n) - 1) 
+```
+
+
+Siendo la H0 de KM: no hay diferencias entre grupos, con el p-valor obtenido la diferencia no es significativa al 0.05 (pero sí al 0.1). Este gráfico aclara por qué:
+
 ```{r, eval=TRUE}
 autoplot(KM.fondos,xlab=ejeX,ylab=ejeY, main = titulo,conf.int = T)
 ```
 
-
+De nuevo, como sólo hay dos variables, es dificil saber qué más interviene. De ahí que necesitamos un modelo regresional.
 
 
 
 ### 2.2 Regresión Cox
 
-Como toda regresión, esta técnica permite utilizar regresores, pero no modela la duración sino el _riesgo de que el evento suceda_ (ser re arrestado):
+Como toda regresión, esta técnica permite utilizar regresores o predictores o covariados, pero no modela la duración sino el _riesgo de que el evento suceda_ (ser re arrestado):
 
 
 
 ```{r, eval=TRUE}
-COX_H1= formula(survival~as.factor(tuvoApoyoDinero)+as.ordered(nivelEduca)+vecesEnCarcel)
-  
-modelo.REARRESTAR <- coxph(COX_H1,data=carcel)
-summary(modelo.REARRESTAR)
+COX_H1= formula(survival~tuvoApoyoDinero+nivelEduca+vecesEnCarcel)
+# forzando a nominal: as.factor(as.numeric(nivelEduca))
+
+rcox1 <- coxph(COX_H1,data=carcel)
+summary(rcox1)
 ```
 
-Podemos ver que dar financiamiento y condenas previas son significativos al 0.05, y que nivel educativo no lo mes. La primera tiene una relación inversa con el riesgo de ser re arrestado (reducen el riesgo), pero la segunda tiene relación directa. Podríamos leer el segundo bloque con los coeficientes exponenciados para dar una interpretación. Esto es diferente si se trata de una variable categórica o una numérica. 
+Podemos ver que dar financiamiento y condenas previas son significativos al 0.05, y que nivel educativo no lo es. La primera tiene una relación inversa con el riesgo de ser re arrestado (reducen el riesgo), pero la segunda tiene relación directa. Podríamos leer el segundo bloque con los coeficientes exponenciados para dar una interpretación. Esto es diferente si se trata de una variable categórica o una numérica. 
 
 Así, el riesgo de ser arrestado de alguien con fondos es 33.9% (1-0.660) menor de alguien sin tener fondos . 
 
 ```{r}
-ci <- confint(modelo.REARRESTAR)
-exp(cbind(coef(modelo.REARRESTAR), ci))["as.factor(tuvoApoyoDinero)1",]
-# O...
-1-exp(cbind(coef(modelo.REARRESTAR), ci))["as.factor(tuvoApoyoDinero)1",]
+ci <- confint(rcox1)
+1-exp(cbind(coef(rcox1), ci))["tuvoApoyoDinero1",]
 ```
 
 
@@ -213,12 +232,27 @@ exp(cbind(coef(modelo.REARRESTAR), ci))["as.factor(tuvoApoyoDinero)1",]
 Por otro lado, cada condena previa aumenta el riesgo de ser re arrestado en 9.07% (1.0907-1).
 
 ```{r}
-ci <- confint(modelo.REARRESTAR)
-exp(cbind(coef(modelo.REARRESTAR), ci))["vecesEnCarcel",]
-# o...
-exp(cbind(coef(modelo.REARRESTAR), ci))["vecesEnCarcel",]-1
+exp(cbind(coef(rcox1), ci))["vecesEnCarcel",]-1
 ```
 
+Podemos verlo gráficamente así:
+
+```{r,message=FALSE, warning=FALSE}
+library(survminer)
+ggforest(rcox1, data = carcel)
+```
+
+Sacamos educación?
+```{r}
+COX_H2= formula(survival~tuvoApoyoDinero+vecesEnCarcel)
+
+rcox2 <- coxph(COX_H2,data=carcel)
+
+library(survival)
+anova(rcox2,rcox1)
+```
+
+Añadir nivel educativo no es significativo al 0.05, pero sí lo es al 0.1.
 
 Tarea para la casa:
 
