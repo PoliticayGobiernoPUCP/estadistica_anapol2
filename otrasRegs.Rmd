@@ -114,5 +114,22 @@ library(semPlot)
 semPaths(regLat ,layout='tree2',whatLabels = 'std')
 
 ```
+```{r}
+modelo2= 
+        'ideL =~ identidad + salud + educacion + saneamient + electrific
+        idhL =~ esperanza + secundaria + educa +percapitaf
+        vulL =~ fecundidad + desnutrici + mortalidad
 
+        # regresiones
+        idhL ~ ideL
+        ideL ~ vulL'
+
+# 2. Calculos
+
+regLat2<-sem(modelo2, data=perudat)#, fixed.x=FALSE)
+
+
+semPaths(regLat2 ,layout='tree2',whatLabels = 'std')
+
+```
 
