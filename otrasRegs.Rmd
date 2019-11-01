@@ -1,229 +1,117 @@
+Traigamos varios indicadores e indices de Perú:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRIELLZGB7UZfNMSHmPExFW6BsCwjWvCcNJV4uvjRd9Tnwq0DqveCBOhJhKwWaRxtPedAxrI6rHY9Ps/pubhtml?widget=true&amp;headers=false"></iframe>
+
+## 1. Regresión Ordinal
 
 ```{r carga}
-library(foreign)
-archivo="provinciasPeru.dbf"
-perudat=read.dbf(archivo,as.is = T)
+link='https://docs.google.com/spreadsheets/d/e/2PACX-1vRIELLZGB7UZfNMSHmPExFW6BsCwjWvCcNJV4uvjRd9Tnwq0DqveCBOhJhKwWaRxtPedAxrI6rHY9Ps/pub?gid=550147750&single=true&output=csv' 
+
+perudat=read.csv(link, stringsAsFactors = F)
 names(perudat)
 ```
 
+Creemos una **variable dependiente ordinal** a partir del indice IDH:
 
 ```{r crea_recodifica}
 niveles=c('muy baja','baja','media',"alta",'muy alta')
 
-perudat$grupIDH=cut(perudat$IDH,
+perudat$IDHord=cut(perudat$IDH,
                     breaks = length(niveles),
                     labels = niveles,
                     ordered_result = T)
-
-toPlot=table(perudat$grupIDH)
-barplot(toPlot,
-        xlab = 'IDH niveles',
-        ylab = 'Conteo de Provincias')
 ```
 
 ```{r subset}
 # podemos querer explicar el nivel de IDH
 # 1-segun cada componente del IDE menos educacion
 # 2-estar en la costa
-
-regvars=perudat[,c(40,15,16,18,19,21)]
-names(regvars)
+sub1=c("IDHord","identidad",  "salud","educacion","saneamient","electrific","costa")
+reg1Data=perudat[,sub1]
+names(reg1Data)
 ```
 
 
 ```{r exploraCAT_uni}
-regvars$costa <- factor(regvars$costa)
-table(regvars$costa)
+reg1Data$costa <- as.factor(reg1Data$costa)
+table(reg1Data$costa)
 ```
 
 ```{r}
 library("oglmx")
-model2=ologit.reg(grupIDH ~ .,
-                  data = regvars)
-summary(model2)
+modelOrd=ologit.reg(IDHord ~ .,
+                  data = reg1Data)
+summary(modelOrd)
 ```
 
 ```{r}
-(model2m=margins.oglmx(model2,ascontinuous = TRUE))
+(modelOrd_M=margins.oglmx(modelOrd,ascontinuous = TRUE))
 ```
 
 
+## 2. Regresión Beta
 
-
-
-```{r carga}
-library(foreign)
-archivo="provinciasPeru.dbf"
-perudat=read.dbf(archivo,as.is = T)
-names(perudat)
-```
+Veamos una numérica porcentual:
 
 ```{r}
 # como se comporta la mortalidad?
-hist(perudat$mortalidad)
-```
-
-```{r}
-#explorando
 summary(perudat$mortalidad)
 ```
+
+Transformemosla en (0,1):
+
 ```{r}
-# es un porcentaje, pasemoslos (0,1)
 perudat$mortalidad=perudat$mortalidad/100
 ```
 
 ```{r}
-#replanteemos regresión
-#esta acotada!!!
-
 library(betareg)
 #VD:mortalidad
 #VIs:desnutrici, percapitaf, salud, saneamient, analfa
 #VCs:población
-betaData=perudat[,c('mortalidad','desnutrici', 'percapitaf', 'salud', 'saneamient', 'analfa','pob')]
-modelo=betareg(mortalidad~desnutrici+percapitaf+salud+saneamient+analfa,
-            data=betaData)
-summary(modelo)
+sub2=c('mortalidad','desnutrici', 'percapitaf', 'salud', 'saneamient', 'analfa','pob')
+reg2Data=perudat[,sub2]
+modelBeta=betareg(mortalidad~.,data=reg2Data)
+summary(modelBeta)
 ```
 
-```{r model1_interpre_margins}
-# interpracion usando marginal effects:
-library(margins)
+<!---
+https://rcompanion.org/handbook/J_02.html
+--->
+## Parte 3. Regresión y variables latentes:
 
-(modeloM = margins(modelo))
-
-```
+Si quisieramos demostrar la hipótesis que el IDH depende del IDH y de la ubicación de la provincia:
 
 ```{r}
-summary(modeloM)
-```
+modelo= 
+        'ideL =~ identidad + salud + educacion + saneamient + electrific
+        idhL =~ esperanza + secundaria + educa +percapitaf
+        vulL =~ fecundidad + desnutrici + mortalidad
 
-Tarea: Hacer grafico de intervalo de confianza de cada VarIndep (factor) usando ggplot.
-
-#####
-
-
-PLAN:
-
-* Var Dependiente: MATEMATICA (MATH)
-* Var Independiente: RDG + WRTG
-
-
-```{r}
-# desde google
-
-link="https://docs.google.com/spreadsheets/d/e/2PACX-1vTcFY_f_k94wuMUL8ISrklSmjlbYgnPeEVdGApFI0Y39OQB8IrHvv1bmD6E0u9uYo06Bpl5llns-BLR/pub?gid=1282421390&single=true&output=csv"
-```
-
-```{r}
-# leyendo
-
-allData=read.csv(link)
-```
-
-```{r}
-str(allData)
+        # regresiones
+        idhL ~ ideL + vulL'
 ```
 
 
 
-## Regresión: Hipótesis Asimétrica:
-
-El nivel de RDG y WRTG afecta al desempeño en matemática
-
-```{r}
-modelo2=lm(MATH~RDG+WRTG, data = allData)
-
-summary(modelo2)
-```
-
-
-
-* Visualizando predictor:
-
-```{r}
-library(sjPlot)
-library(snakecase)
-
-plot_models(modelo2,colors = 'blue',
-            vline.color = "red",
-            axis.lim = c(-1,1))
-```
-
-
-
-
-* Qué valor uso para comparar este modelo?
-```{r}
-# si hay mas de una variable, usar: (sino usar el anterior)
-summary(modelo2)$adj.r.squared
-```
-
-Representación:
-
-```{r}
-library(semPlot)
-semPaths(modelo2,whatLabels  = 'par')
-```
-
-Si añado SES como un predictor más, hay diferencia?
-```{r}
-modelo3=lm(MATH~RDG+WRTG + factor(SES), data = allData)
-
-summary(modelo3)
-```
-```{r}
-plot_model(modelo3,colors = 'blue',
-            vline.color = "red",
-            axis.lim = c(-1,5))
-```
-
-```{r}
-semPaths(modelo3,
-         whatLabels = 'par',
-         edge.label.cex = 2)
-```
-
-```{r}
-semPaths(modelo3,what = 'std',
-         whatLabels = 'par',
-         edge.label.cex = 2)
-```
-
-El R-cuadrado ajustado ha subido... me quedo con el nuevo predictor?
-```{r}
-anova(modelo2,modelo3)
-```
-
-o...
-```{r}
-anova(modelo2,modelo3)$`Pr(>F)`[2]<0.05
-```
-
-Es decir, añadir ese predictor sí es relevante. Se debe quedar.
 
 ```{r}
 library(lavaan)
 
-# 1. Especificando modelo
-
-modelo4<-'
-MATH ~ RDG + WRTG
-WRTG ~ MOT
-RDG ~ SES + MOT
-'
-
 # 2. Calculos
 
-modelo4_Resultado<-sem(modelo4, data=allData, fixed.x=FALSE)
+regLat<-sem(modelo, data=perudat)#, fixed.x=FALSE)
 
 # 3. Resultados
 
-summary(modelo4_Resultado, standardized=TRUE)
+summary(regLat, standardized=TRUE)
 ```
 
 ```{r}
-semPaths(modelo4_Resultado ,layout='tree2',whatLabels = 'std')
+
+library(semPlot)
+
+semPaths(regLat ,layout='tree2',whatLabels = 'std')
 
 ```
 
