@@ -1,0 +1,176 @@
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Análisis Factorial II: Confirmación</h2>  </header></center>
+____
+
+La vez pasada descargamos varios indicadores de estos links:
+
+
+* [https://en.wikipedia.org/wiki/World_Happiness_Report](https://en.wikipedia.org/wiki/World_Happiness_Report)
+
+* [https://en.wikipedia.org/wiki/Democracy_Index](https://en.wikipedia.org/wiki/Democracy_Index)
+
+La data la colectamos y preparamos así:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(htmltab)
+
+# links
+happyL=c("https://en.wikipedia.org/wiki/World_Happiness_Report",
+         '//*[@id="mw-content-text"]/div/table/tbody')
+demoL=c("https://en.wikipedia.org/wiki/Democracy_Index", 
+        '//*[@id="mw-content-text"]/div/table[2]/tbody')
+
+# carga
+happy = htmltab(doc = happyL[1],which  = happyL[2],encoding = "UTF-8")
+demo  = htmltab(doc = demoL[1], which  = demoL[2], encoding = "UTF-8")
+
+# limpieza
+
+happy[,]=lapply(happy[,], trimws,whitespace = "[\\h\\v]") # no blanks
+demo[,]=lapply(demo[,], trimws,whitespace = "[\\h\\v]") # no blanks
+
+library(stringr) # nombres simples
+names(happy)=str_split(names(happy)," ",simplify = T)[,1]
+names(demo)=str_split(names(demo)," ",simplify = T)[,1]
+
+
+## Formateo
+
+# Eliminemos columnas que no usaremos esta vez:
+happy$Overall=NULL
+demo[,c(1,9,10)]=NULL
+happy$Score=NULL
+demo$Score=NULL
+
+
+# Tipo de variables:
+
+## En demo:
+demo[,-c(1)]=lapply(demo[,-c(1)],as.numeric)
+
+# En happy:
+happy[,-c(1)]=lapply(happy[,-c(1)],as.numeric)
+
+# sin perdidos:
+happy=na.omit(happy)
+demo=na.omit(demo)
+
+HappyDemo=merge(happy,demo)
+```
+
+## 1. Encontrando indices a partir de indicadores
+
+
+Usando [EFA](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/efa.html) obtuvimos:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(psych)
+theData=HappyDemo[,-c(1,2,9)] # sin los Scores ni nombre de país
+
+library(GPArotation)
+resfa <- fa(theData,nfactors = 3,cor = 'mixed',rotate = "varimax",fm="minres")
+
+fa.diagram(resfa)
+```
+
+## 2. Confirmando modelo teórico
+
+Si la exploración apoyaba nuestro marco teórico, podemos proponer cómo construir los indices:
+
+```{r}
+model <- ' democracia  =~ Electoral + Functioning + Politicalparticipation + Politicalculture + Civilliberties
+           tranquilidad =~ Freedom + Generosity + Perceptions
+           bienestar   =~ GDP + Social + Healthy'
+```
+
+Ahora vemos qué arroja el modelo:
+
+```{r}
+library(lavaan)
+fit <- cfa(model, data=HappyDemo, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Hagamosle caso a la advertencia:
+
+```{r}
+varTable(fit)
+```
+
+Apliquemos factores correctores:
+
+```{r}
+library(dplyr)
+library(magrittr)
+HappyDemo <- HappyDemo %>% mutate(Electoral = Electoral/10)
+HappyDemo <- HappyDemo %>% mutate(Functioning = Functioning/10)
+HappyDemo <- HappyDemo %>% mutate(Politicalparticipation = Politicalparticipation/10)
+HappyDemo <- HappyDemo %>% mutate(Politicalculture = Politicalculture/10)
+HappyDemo <- HappyDemo %>% mutate(Civilliberties = Civilliberties/10)
+```
+
+Volvamos a correr el CFA:
+
+
+```{r}
+fit <- cfa(model, data=HappyDemo, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+```{r}
+medidas=c("tli","rmsea","rmsea.ci.lower","rmsea.ci.upper","rmsea.pvalue")
+fitmeasures(fit,fit.measures = medidas)
+```
+
+Ya sabemos que no hay buen augurio.
+
+Añadimos los índices a la data de indicadores:
+
+```{r}
+HappyDemo=cbind(HappyDemo,lavPredict(fit))
+```
+
+
+Veamos un resumen:
+```{r}
+summary(HappyDemo)
+```
+
+Ahora podemos correr una regresión con los índices:
+
+```{r}
+summary(lm(democracia~tranquilidad+bienestar,data = HappyDemo))
+```
+
+Sólo para verificar:
+
+```{r}
+
+old=apply(HappyDemo[,c("Electoral","Functioning","Politicalparticipation","Politicalculture","Civilliberties")],1,mean)
+new=HappyDemo$democracia
+plot(old,new)
+cor(old,new)
+```
+
+_____
+<br></br>
+
+[al INICIO](#beginning)
+
+[VOLVER A CONTENIDOS](https://politicaygobiernopucp.github.io/estadistica_anapol2/)

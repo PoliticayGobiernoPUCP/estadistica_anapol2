@@ -28,7 +28,7 @@
 
 * Factorización
     - [Explorativa](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/efa.html)
-    - Confirmativa
+    - [Confirmativa](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/cfa.html)
 
 ### Unidad 3: Modelos Estadístico Inferenciales
 * [Regresión Lineal y sus diagnósticos](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/regresion.html)
