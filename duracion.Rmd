@@ -76,7 +76,7 @@ y...
 table(carcel$fueArrestado)
 ```
 
-Hasta ahora sabemos regresión Gaussiana o usar Regresión Logística.
+Hasta ahora sabemos regresión Gaussiana y Regresión Logística.
 
 * Si nos interesa el efecto de _apoyo financiero_, _nivel educativo_ y _encarcelamientos previos_; podríamos plantearnos estas hipotesis:
 
@@ -108,7 +108,7 @@ gauss=lm(hipotesis1,data=carcel,contrasts=list(nivelEduca="contr.treatment"))
 summary(gauss)
 ```
 
-La diferencia es que en esta ocasión cada nivel de la ordinal (ahora ordinal) se compara con el nivel más bajo: _si hubiera_ significativa esta variable, el NIVEL EDUCATIVO "2" afectaria a la dependiente en -3.7 en comparacion con el nivel "1", y el nivel educativo "3" afectaria a la dependiente en -3.4 en comparación con el nivel "1", etc..
+La diferencia es que en esta ocasión cada nivel de la ordinal (ahora nominal) se compara con el nivel más bajo: _si hubiera_ salido significativa esta variable, el NIVEL EDUCATIVO "2" afectaria a la dependiente en -3.7 en comparacion con el nivel "1", y el nivel educativo "3" afectaria a la dependiente en -3.4 en comparación con el nivel "1", etc..
 
 Otra aparente alternativa, si quisieramos usar regresión logística binaria podría ser usar la variable "fue arrestado" como dependiente:
 
@@ -122,7 +122,7 @@ summary(logisbin)
 ```
 
 
-La regresión acepta la H1_1 y la H1_3 con significancia de 0.05, pero rechazaríamos la  H1_2.
+La regresión acepta la $H1_1$ y la $H1_3$ con significancia de 0.05, pero rechazaríamos la  $H1_2$.
 
 ¿Qué problema no estamos advirtiendo?
 
@@ -248,7 +248,7 @@ COX_H2= formula(survival~tuvoApoyoDinero+vecesEnCarcel)
 
 rcox2 <- coxph(COX_H2,data=carcel)
 
-library(survival)
+
 anova(rcox2,rcox1)
 ```
 
@@ -256,7 +256,7 @@ Añadir nivel educativo no es significativo al 0.05, pero sí lo es al 0.1.
 
 Tarea para la casa:
 
- * Planteese dos nuevos analisis, con diferentes variables independientes, manteniendo _survival_como dependiente. Escriba sus análisis con detalle.
+ * Planteese dos nuevos analisis, con diferentes variables independientes, manteniendo _survival_ como dependiente. Escriba sus análisis con detalle.
  
 
 

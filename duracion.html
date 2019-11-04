@@ -448,7 +448,7 @@ carcel$nivelEduca=as.ordered(carcel$nivelEduca)</code></pre>
 <pre><code>## 
 ##   0   1 
 ## 318 114</code></pre>
-<p>Hasta ahora sabemos regresión Gaussiana o usar Regresión Logística.</p>
+<p>Hasta ahora sabemos regresión Gaussiana y Regresión Logística.</p>
 <ul>
 <li><p>Si nos interesa el efecto de <em>apoyo financiero</em>, <em>nivel educativo</em> y <em>encarcelamientos previos</em>; podríamos plantearnos estas hipotesis:</p>
 <ul>
@@ -518,7 +518,7 @@ summary(gauss)</code></pre>
 ## Residual standard error: 12.45 on 425 degrees of freedom
 ## Multiple R-squared:  0.0462, Adjusted R-squared:  0.03273 
 ## F-statistic: 3.431 on 6 and 425 DF,  p-value: 0.002555</code></pre>
-<p>La diferencia es que en esta ocasión cada nivel de la ordinal (ahora ordinal) se compara con el nivel más bajo: <em>si hubiera</em> significativa esta variable, el NIVEL EDUCATIVO “2” afectaria a la dependiente en -3.7 en comparacion con el nivel “1”, y el nivel educativo “3” afectaria a la dependiente en -3.4 en comparación con el nivel “1”, etc..</p>
+<p>La diferencia es que en esta ocasión cada nivel de la ordinal (ahora nominal) se compara con el nivel más bajo: <em>si hubiera</em> salido significativa esta variable, el NIVEL EDUCATIVO “2” afectaria a la dependiente en -3.7 en comparacion con el nivel “1”, y el nivel educativo “3” afectaria a la dependiente en -3.4 en comparación con el nivel “1”, etc..</p>
 <p>Otra aparente alternativa, si quisieramos usar regresión logística binaria podría ser usar la variable “fue arrestado” como dependiente:</p>
 <pre class="r"><code>#
 hipotesis2=formula(fueArrestado~tuvoApoyoDinero+nivelEduca+vecesEnCarcel)
@@ -553,7 +553,7 @@ summary(logisbin)</code></pre>
 ## AIC: 488.71
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
-<p>La regresión acepta la H1_1 y la H1_3 con significancia de 0.05, pero rechazaríamos la H1_2.</p>
+<p>La regresión acepta la <span class="math inline">\(H1_1\)</span> y la <span class="math inline">\(H1_3\)</span> con significancia de 0.05, pero rechazaríamos la <span class="math inline">\(H1_2\)</span>.</p>
 <p>¿Qué problema no estamos advirtiendo?</p>
 <ol style="list-style-type: decimal">
 <li>Que la duración es un evento condicionado a ser arrestado, ambas son un todo. Algo dura hasta que algo sucede.</li>
@@ -697,7 +697,7 @@ ggforest(rcox1, data = carcel)</code></pre>
 
 rcox2 &lt;- coxph(COX_H2,data=carcel)
 
-library(survival)
+
 anova(rcox2,rcox1)</code></pre>
 <pre><code>## Analysis of Deviance Table
 ##  Cox model: response is  survival
@@ -711,7 +711,7 @@ anova(rcox2,rcox1)</code></pre>
 <p>Añadir nivel educativo no es significativo al 0.05, pero sí lo es al 0.1.</p>
 <p>Tarea para la casa:</p>
 <ul>
-<li>Planteese dos nuevos analisis, con diferentes variables independientes, manteniendo _survival_como dependiente. Escriba sus análisis con detalle.</li>
+<li>Planteese dos nuevos analisis, con diferentes variables independientes, manteniendo <em>survival</em> como dependiente. Escriba sus análisis con detalle.</li>
 </ul>
 <hr />
 <p><br /></p>
