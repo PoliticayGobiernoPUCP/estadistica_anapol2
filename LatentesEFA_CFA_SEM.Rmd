@@ -1,0 +1,325 @@
+<center><img src="https://github.com/PsicologiaPUCP/codigos/raw/master/pics/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>PSICOLOGIA: Investigación y Estadística II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno. Profesor Afiliado del Departamento de Psicología.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+____
+
+<center> <header><h2>Trabajando con Variables Latentes</h2>  </header></center>
+____
+
+Esta data representa el interés en diferentes tipos gustos sobre películas:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQTgH1Y0YksmtL4G9ZPoODRU-au5r1FtuHfm8K27ySxhS-zCS_FuEuMGeco-rD1O5798BDiK5al_hXc/pubhtml?gid=1732121265&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+
+
+
+```{r, echo=FALSE, eval=TRUE}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vQTgH1Y0YksmtL4G9ZPoODRU-au5r1FtuHfm8K27ySxhS-zCS_FuEuMGeco-rD1O5798BDiK5al_hXc/pub?gid=1732121265&single=true&output=csv"
+
+movie=read.csv(link,stringsAsFactors = T)
+```
+
+
+
+```{r, echo=FALSE, eval=FALSE}
+str(movie)
+```
+
+La data disponible tiene tiene estas características:
+
+```{r, echo=FALSE, eval=TRUE, results='asis'}
+library(psych)
+library(knitr)
+# ver orden original
+kable(psych::describe(movie[,-c(1,12)]))
+```
+
+
+## I. Etapa Exploratoria: ¿Habrá alguna manera de organizar a las mediciones disponibles?
+
+![](pics/efa.png)
+
+
+Para lograr saber si hay alguna manera aceptable de reducir la dimensionalidad de los datos, demos verificar ciertos comportamientos:
+
+
+1. Matriz de correlación:
+
+La matriz de correlación es la base de esta etapa. Observemosla:
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+
+theData=movie[,-c(1,12)] # sin los Scores ni nombre de país.
+
+# esta es:
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+
+Si hay correlaciones entre ciertas variables, hay esperanzas de una buena reducción de dimensiones.
+
+
+2. Verificar si datos permiten factorizar:
+
+Para ello debemos calcular en indice de Kaiser-Meyer-Olkin:
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+library(psych)
+MSAs=rbind(data.frame(MSA=KMO(corMatrix)$MSAi),KMO(corMatrix)$MSA)
+row.names(MSAs)[11]='Global MSA'
+kable(MSAs)
+```
+
+
+3. Verificar si la matriz de correlaciones es adecuada
+
+Aqui hay dos pruebas:
+
+* Prueba de Bartlett, para descartar que la matriz de correlacion sea una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix). La H0 propone que la matriz es una matriz de identidad:
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
+```
+
+* Prueba de No-Singularidad, para descartar que la matriz de correlacion sea una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html). La H0 propone que la matriz es una matriz singular:
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+4. Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.parallel(corMatrix,fm = 'pa', fa = 'fa',n.obs = nrow(theData),show.legend=F)
+```
+
+Como se sugieren 4, veamos:
+
+
+5. Redimensionar a numero menor de factores
+
+* Resultado inicial:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE, echo=FALSE}
+library(GPArotation)
+movieF_result <- fa(theData,nfactors = 4,cor = 'mixed',rotate = "varimax",fm="ML")
+print(movieF_result$loadings)
+```
+
+* Resultado mejorado:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE, echo=FALSE}
+print(movieF_result$loadings,cutoff = 0.4)
+```
+
+Cuando logramos que cada variable se vaya a un factor, tenemos una _estructura simple_.
+
+* Resultado visual:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE, echo=FALSE}
+fa.diagram(movieF_result)
+```
+
+
+6. Analizando Resultado
+
+Revisamos las **comunalidades** para ver cuanto han contribuido las variables al proceso en total:
+
+```{r, echo=FALSE}
+sort(movieF_result$communalities)
+```
+
+Su opuesto es la **unicidad**, lo que no comparten en el proceso:
+
+```{r, echo=FALSE}
+# mientras mas grande peor (lo que mantiene)
+sort(movieF_result$uniquenesses)
+```
+
+La **complejidad** nos permite saber si una variable le pertenecería a un sólo factor, o no:
+```{r, echo=FALSE}
+sort(movieF_result$complexity)
+```
+
+
+
+## II. Etapa Confirmatoria: ¿Existirán las latentes que mi teoría ha sugerido?
+
+![](pics/cfa.png)
+
+
+```{r, echo=FALSE, message=FALSE}
+library(lavaan)
+```
+
+Es decir, planteamos que esto existe:
+
+```{r}
+modelCFA <- '
+  # measurement model
+    A_Solas =~ War + Action + SciFi + Documentary
+    En_Pareja =~ Horror + Thriller
+    En_Grupo =~ Fantasy + Animated + Comedy + Romantic
+'
+```
+
+Podemos indicar cuáles son las ordinales:
+
+```{r}
+ORDINALES=c("Horror","Thriller","Comedy","Romantic",   "SciFi","War","Fantasy","Animated","Documentary","Action")
+```
+
+Luego, calculamos resultados del modelo:
+
+```{r, warning=FALSE}
+cfaFIT=cfa(modelCFA, 
+           data=theData,
+           ordered = ORDINALES)
+```
+
+Y vemos resultados:
+
+```{r, echo=FALSE}
+allParamCFA=parameterEstimates(cfaFIT,standardized = T)
+
+kable(allParamCFA[allParamCFA$op=="=~",])
+
+```
+
+
+Graficamente:
+
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
+
+library(semPlot)
+semPaths(cfaFIT,color='black')
+```
+
+O...
+
+```{r,echo=FALSE}
+semPaths(cfaFIT, what='std', nCharNodes=6, sizeMan=5,
+         edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE,color='black')
+
+```
+
+Qué tan buena es nuestra propuesta:
+
+* El ChiSquare es NO significativo:
+
+```{r,echo=FALSE}
+allFitCFA=as.list(fitMeasures(cfaFIT))
+
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=FALSE}
+allFitCFA$tli # > 0.90
+```
+
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=FALSE}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
+```
+
+
+## III. Etapa Estructural: ¿Cómo regresionamos latentes?
+
+Aquí queremos plantear una regresió combinando lo observado y la latente:
+
+![](pics/sem.png)
+
+
+
+Este puede ser un modelo:
+
+```{r}
+modelSEM <- '
+  # measurement model
+    A_Solas =~ War + Action + SciFi + Documentary
+    En_Pareja =~ Horror + Thriller
+    En_Grupo =~ Fantasy + Animated + Comedy + Romantic
+  # regressions
+    A_Solas ~ En_Pareja + En_Grupo
+'
+```
+
+
+Si obtenemos la regresión:
+
+```{r, warning=FALSE}
+semFIT <- sem(modelSEM, 
+              data=theData,
+              ordered = ORDINALES)
+```
+
+
+Estos son los resultados:
+
+* Regresiones
+```{r,echo=FALSE}
+allParamSEM=parameterEstimates(semFIT,standardized = T)
+
+kable(allParamSEM[allParamSEM$op=="~",])
+```
+
+* Cargas
+```{r,echo=FALSE}
+kable(allParamSEM[allParamSEM$op=="=~",])
+```
+
+Visualmente:
+
+```{r, echo=FALSE}
+semPaths(semFIT, what='std', nCharNodes=6, sizeMan=5,
+         edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE,color='black')
+```
+
+
+Qué tan bueno es el modelo?
+
+
+```{r, echo=FALSE}
+allFitSEM=as.list(fitMeasures(semFIT))
+```
+
+* El ChiSquare es NO significativo:
+
+```{r}
+allFitSEM[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=FALSE}
+allFitSEM$tli # > 0.90
+```
+
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=FALSE}
+allFitSEM[c( 'rmsea.ci.lower','rmsea','rmsea.ci.upper')] #  toca 0.08
+```
+
+
+
+

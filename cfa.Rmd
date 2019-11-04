@@ -99,7 +99,7 @@ Ahora vemos qué arroja el modelo:
 
 ```{r}
 library(lavaan)
-fit <- cfa(model, data=HappyDemo, 
+cfa_fit <- cfa(model, data=HappyDemo, 
            std.lv=TRUE,  
            missing="fiml")
 ```
@@ -107,7 +107,7 @@ fit <- cfa(model, data=HappyDemo,
 Hagamosle caso a la advertencia:
 
 ```{r}
-varTable(fit)
+varTable(cfa_fit)
 ```
 
 Apliquemos factores correctores:
@@ -126,24 +126,53 @@ Volvamos a correr el CFA:
 
 
 ```{r}
-fit <- cfa(model, data=HappyDemo, 
+cfa_fit <- cfa(model, data=HappyDemo, 
            std.lv=TRUE,  
            missing="fiml")
 ```
 
+
+Veamos resultados:
+
+```{r, echo=TRUE}
+
+
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+
+library(knitr)
+kable(allParamCFA[allParamCFA$op=="=~",])
+
+```
+
 Averigüemos qué tan bien salió el modelo:
 
-```{r}
-medidas=c("tli","rmsea","rmsea.ci.lower","rmsea.ci.upper","rmsea.pvalue")
-fitmeasures(fit,fit.measures = medidas)
+* El ChiSquare es NO significativo:
+
+```{r,echo=FALSE}
+allFitCFA=as.list(fitMeasures(cfa_fit))
+
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
 ```
+
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=TRUE}
+allFitCFA$tli # > 0.90
+```
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=FALSE}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
+```
+
 
 Ya sabemos que no hay buen augurio.
 
 Añadimos los índices a la data de indicadores:
 
 ```{r}
-HappyDemo=cbind(HappyDemo,lavPredict(fit))
+HappyDemo=cbind(HappyDemo,lavPredict(cfa_fit))
 ```
 
 

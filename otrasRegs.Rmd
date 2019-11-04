@@ -100,7 +100,12 @@ https://rcompanion.org/handbook/J_02.html
 --->
 ## Parte 3. Regresión y variables latentes:
 
-Si quisieramos demostrar la hipótesis que el IDH depende del IDH y de la ubicación de la provincia:
+Si quisieramos demostrar la hipótesis que el IDH depende del IDH, la VULnerabilidad y de la ubicación de la provincia:
+
+
+```{r}
+perudat$costa=as.numeric(as.factor(perudat$costa))
+```
 
 ```{r}
 modelo= 
@@ -109,7 +114,7 @@ modelo=
         vulL =~ fecundidad + desnutrici + mortalidad
 
         # regresiones
-        idhL ~ ideL + vulL'
+        idhL ~ ideL + vulL+ costa'
 ```
 
 
@@ -118,20 +123,33 @@ modelo=
 ```{r}
 library(lavaan)
 
-# 2. Calculos
+# Calculos
 
-regLat<-sem(modelo, data=perudat, fixed.x=FALSE)
+regLat1<-sem(modelo, data=perudat, fixed.x=FALSE,)
 
-# 3. Resultados
+```
 
-summary(regLat, standardized=TRUE)
+
+Estos son los resultados:
+
+* Regresiones
+```{r,echo=TRUE}
+library(knitr)
+allParamSEM=parameterEstimates(regLat1,standardized = T)
+
+kable(allParamSEM[allParamSEM$op=="~",])
+```
+
+* Cargas
+```{r,echo=FALSE}
+kable(allParamSEM[allParamSEM$op=="=~",])
 ```
 
 ```{r}
 
 library(semPlot)
 
-semPaths(regLat ,layout='tree2',whatLabels = 'std')
+semPaths(regLat1 ,layout='tree2',whatLabels = 'std')
 
 ```
 
@@ -143,14 +161,11 @@ modelo2=
 
         # regresiones
         idhL ~ ideL
-        ideL ~ vulL'
+        ideL ~ vulL + costa'
 
 # 2. Calculos
 
 regLat2<-sem(modelo2, data=perudat)#, fixed.x=FALSE)
-
-
-semPaths(regLat2 ,layout='tree2',whatLabels = 'std')
 
 ```
 
@@ -178,8 +193,57 @@ perudat <- perudat %>% mutate(mortalidad = mortalidad*100)
 
 regLat2<-sem(modelo2, data=perudat, fixed.x=FALSE)
 
-fitmeasures(regLat2)
+
 ```
+
+Estos son los resultados:
+
+* Regresiones
+```{r,echo=FALSE}
+allParamSEM=parameterEstimates(regLat2,standardized = T)
+
+kable(allParamSEM[allParamSEM$op=="~",])
+```
+
+* Cargas
+```{r,echo=FALSE}
+kable(allParamSEM[allParamSEM$op=="=~",])
+```
+
+Visualmente:
+
+```{r, echo=FALSE}
+semPaths(regLat2, what='std', nCharNodes=6, sizeMan=5,
+         edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE,color='black')
+```
+
+
+Qué tan bueno es el modelo?
+
+
+```{r, echo=FALSE}
+allFitSEM=as.list(fitMeasures(regLat2))
+```
+
+* El ChiSquare es NO significativo:
+
+```{r}
+allFitSEM[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=FALSE}
+allFitSEM$tli # > 0.90
+```
+
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=FALSE}
+allFitSEM[c( 'rmsea.ci.lower','rmsea','rmsea.ci.upper')] #  toca 0.08
+```
+
+
 _____
 <br></br>
 
