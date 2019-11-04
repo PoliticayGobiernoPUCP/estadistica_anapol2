@@ -372,7 +372,7 @@ Esto quiere decir que:
 * El nivel de neuroticismo no aumenta el odds ratio de ser voluntario.
 * El nivel de extraversion aumenta el odds ratio de ser voluntario en 0.06.
 
-Nótese que los valores que he escrito se calculan asi: 1-OR; de ahí que si un OR fuese menor a 1, como 0.87, diriamos que el efecto es de 0.17 sobre la dependiente.
+Nótese que los valores que he escrito se calculan asi: 1-OR; de ahí que si un OR fuese menor a 1, como 0.87, diriamos que el efecto es de 0.13 sobre la dependiente.
 
 
 
