@@ -98,38 +98,15 @@ model <- ' democracia  =~ Electoral + Functioning + Politicalparticipation + Pol
 Ahora vemos qué arroja el modelo:
 
 ```{r}
+# normalizar las variables:
+HappyDemo=scale(HappyDemo[,-1])
+
 library(lavaan)
 cfa_fit <- cfa(model, data=HappyDemo, 
            std.lv=TRUE,  
            missing="fiml")
 ```
 
-Hagamosle caso a la advertencia:
-
-```{r}
-varTable(cfa_fit)
-```
-
-Apliquemos factores correctores:
-
-```{r}
-library(dplyr)
-library(magrittr)
-HappyDemo <- HappyDemo %>% mutate(Electoral = Electoral/10)
-HappyDemo <- HappyDemo %>% mutate(Functioning = Functioning/10)
-HappyDemo <- HappyDemo %>% mutate(Politicalparticipation = Politicalparticipation/10)
-HappyDemo <- HappyDemo %>% mutate(Politicalculture = Politicalculture/10)
-HappyDemo <- HappyDemo %>% mutate(Civilliberties = Civilliberties/10)
-```
-
-Volvamos a correr el CFA:
-
-
-```{r}
-cfa_fit <- cfa(model, data=HappyDemo, 
-           std.lv=TRUE,  
-           missing="fiml")
-```
 
 
 Veamos resultados:
@@ -146,7 +123,7 @@ kable(allParamCFA[allParamCFA$op=="=~",])
 
 Averigüemos qué tan bien salió el modelo:
 
-* El ChiSquare es NO significativo:
+* El ChiSquare es NO significativo (p_value debe ser mayor a 0.05 para que sea bueno)?
 
 ```{r,echo=FALSE}
 allFitCFA=as.list(fitMeasures(cfa_fit))
@@ -172,7 +149,7 @@ Ya sabemos que no hay buen augurio.
 Añadimos los índices a la data de indicadores:
 
 ```{r}
-HappyDemo=cbind(HappyDemo,lavPredict(cfa_fit))
+HappyDemo=as.data.frame(cbind(HappyDemo,lavPredict(cfa_fit)))
 ```
 
 

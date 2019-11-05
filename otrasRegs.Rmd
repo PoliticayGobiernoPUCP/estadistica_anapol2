@@ -100,12 +100,9 @@ https://rcompanion.org/handbook/J_02.html
 --->
 ## Parte 3. Regresión y variables latentes:
 
-Si quisieramos demostrar la hipótesis que el IDH depende del IDH, la VULnerabilidad y de la ubicación de la provincia:
+Si quisieramos demostrar la hipótesis que el IDH depende del IDH, la VULnerabilidad y de la ubicación de la provincia...
 
-
-```{r}
-perudat$costa=as.numeric(as.factor(perudat$costa))
-```
+1. Representar modelo:
 
 ```{r}
 modelo= 
@@ -118,14 +115,20 @@ modelo=
 ```
 
 
+2. Reformatear "character" como numérico (via factor):  
+
+```{r}
+perudat$costa=as.numeric(as.factor(perudat$costa))
+```
 
 
+3. Calcular
 ```{r}
 library(lavaan)
 
 # Calculos
-
-regLat1<-sem(modelo, data=perudat, fixed.x=FALSE,)
+perudat=scale(perudat[,-c(1,2,16:17,34)])
+regLat1<-sem(modelo, data=perudat, fixed.x=FALSE)
 
 ```
 
@@ -167,22 +170,6 @@ modelo2=
 
 regLat2<-sem(modelo2, data=perudat)#, fixed.x=FALSE)
 
-```
-
-
-
-
-```{r}
-varTable(regLat2)
-```
-
-```{r}
-library(dplyr)
-library(magrittr)
-perudat <- perudat %>% mutate(percapitaf = percapitaf/10)
-perudat <- perudat %>% mutate(educa = educa*10)
-perudat <- perudat %>% mutate(fecundidad = fecundidad*10)
-perudat <- perudat %>% mutate(mortalidad = mortalidad*100)
 ```
 
 
