@@ -478,10 +478,14 @@ library(lavaan)</code></pre>
 <pre class="r"><code>cfa_fit &lt;- cfa(model, data=HappyDemo, 
            std.lv=TRUE,  
            missing=&quot;fiml&quot;)</code></pre>
-<p>Veamos resultados:</p>
+<p>Preparo los tests:</p>
 <pre class="r"><code>allParamCFA=parameterEstimates(cfa_fit,standardized = T)
-
-library(knitr)
+allFitCFA=as.list(fitMeasures(cfa_fit))</code></pre>
+<p>Veamos resultados:</p>
+<ul>
+<li>Si cada indicador tiene una buena conexión con su latente (ver p valor):</li>
+</ul>
+<pre class="r"><code>library(knitr)
 kable(allParamCFA[allParamCFA$op==&quot;=~&quot;,])</code></pre>
 <table>
 <thead>
@@ -661,6 +665,7 @@ kable(allParamCFA[allParamCFA$op==&quot;=~&quot;,])</code></pre>
 <ul>
 <li>El ChiSquare es NO significativo (p_value debe ser mayor a 0.05 para que sea bueno)?</li>
 </ul>
+<pre class="r"><code>allFitCFA[c(&quot;chisq&quot;, &quot;df&quot;, &quot;pvalue&quot;)] # pvalue&gt;0.05</code></pre>
 <pre><code>## $chisq
 ## [1] 217.647
 ## 
@@ -677,6 +682,7 @@ kable(allParamCFA[allParamCFA$op==&quot;=~&quot;,])</code></pre>
 <ul>
 <li>La Raíz del error cuadrático medio de aproximación es menor a 0.05?</li>
 </ul>
+<pre class="r"><code>allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?</code></pre>
 <pre><code>## $rmsea.ci.lower
 ## [1] 0.1491998
 ## 

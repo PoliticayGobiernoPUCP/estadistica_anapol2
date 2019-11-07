@@ -107,15 +107,16 @@ cfa_fit <- cfa(model, data=HappyDemo,
            missing="fiml")
 ```
 
-
+Preparo los tests:
+```{r}
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+allFitCFA=as.list(fitMeasures(cfa_fit))
+```
 
 Veamos resultados:
 
+* Si cada indicador tiene una buena conexión con su latente (ver p valor):
 ```{r, echo=TRUE}
-
-
-allParamCFA=parameterEstimates(cfa_fit,standardized = T)
-
 library(knitr)
 kable(allParamCFA[allParamCFA$op=="=~",])
 
@@ -125,8 +126,7 @@ Averigüemos qué tan bien salió el modelo:
 
 * El ChiSquare es NO significativo (p_value debe ser mayor a 0.05 para que sea bueno)?
 
-```{r,echo=FALSE}
-allFitCFA=as.list(fitMeasures(cfa_fit))
+```{r}
 
 allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
 ```
@@ -139,7 +139,7 @@ allFitCFA$tli # > 0.90
 ```
 * La Raíz del error cuadrático medio de aproximación es menor a 0.05?
 
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
 ```
 
