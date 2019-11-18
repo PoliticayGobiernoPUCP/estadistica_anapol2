@@ -1,0 +1,697 @@
+<br> 
+<center><img src="http://i.imgur.com/tveTlt8.png" width="300"></center>
+
+## Course: Estadística Para el Análisis Político II<br> Semestre 2017-II<br> 
+### Prof. José Manuel Magallanes, PhD 
+____
+## **Análisis Multivariado**
+
+## Modelamiento y Técnicas Predictivas (Datos de corte tranversal)
+____
+
+<a id='beginning'></a>
+
+
+Carguemos la data:
+```{r, eval=TRUE}
+folder='data'
+fileName='idh_elec.csv'
+fileToRead=file.path(folder,fileName)
+idh_elec=read.csv(fileToRead,strip.white = T,
+                  stringsAsFactors = F)
+```
+
+Como antes revisemos qué TIPO de data tenemos:
+
+```{r, eval=TRUE}
+str(idh_elec)
+```
+
+La data tiene los componentes del IDH calculados por distrito el año 2012. Así mismo, tenemos los votos para PPK y KEIKO durante la segunda vuelta del 2016. Veamos qué podemos preguntarnos con técnicas multivariadas.
+
+```{r, eval=TRUE}
+idh_elec$ganappk=as.factor(ifelse(idh_elec$PPK>idh_elec$FP,1,0))
+levels(idh_elec$ganappk)=c('Keiko','PPK')
+```
+
+
+## Buscando explicaciones
+
+Si quisieramos saber cómo están relacionados los resultados electorales con el idh, necesitamos hacer una regresión.
+Primero, creemos un subconjunto:
+
+```{r, eval=TRUE}
+test=idh_elec[,c('ganappk','esperanza','secundaria','tiempoedu','percapitaf')]
+aggregate(cbind(esperanza,secundaria,tiempoedu,percapitaf) ~ ganappk, data=test,FUN=mean)
+```
+
+
+Exploremos esos grupos con más detalle:
+
+```{r, eval=TRUE}
+par(mfrow=c(2,2))
+boxplot(esperanza ~ ganappk, data=test,main='esperanza de vida')
+boxplot(secundaria ~ ganappk, data=test,main='secundaria')
+boxplot(tiempoedu ~ ganappk, data=test,main='años de educación')
+boxplot(percapitaf ~ ganappk, data=test,main='percapita familiar')
+
+```
+
+
+
+Aqui proponemos un modelo:
+
+
+```{r, eval=TRUE}
+
+modeloDico <- glm(ganappk ~ ., 
+                 data = test, 
+                 family = "binomial")
+
+summary(modeloDico)
+```
+
+
+Los valores negativos indican que el aumento de esa variable disminuye la probabilidad de ganar para PPK, los positivos lo contrario (siempre que el p-valor sea muy pequeño). Otra manera de leerlo: 
+
+
+```{r, eval=TRUE}
+exp(coef(modeloDico))
+```
+Mientres mayor a 1, mayor la probabilidad de ganar, si es menor que 1, lo opuesto (la cercanía a cero insinúa ausencia de efecto).
+
+_____
+
+Lo anterior 'modelaba' la respuesta dicotómica _gana ppk_, pero si tuvieramos una variable de conteo?
+```{r, eval=TRUE}
+hist(idh_elec$PPK) # votos de PPK
+```
+
+Preparemos ese subconjunto:
+
+```{r, eval=TRUE}
+test2=idh_elec[,c('PPK','esperanza','secundaria','tiempoedu','percapitaf')]
+```
+
+Calculemos la media y la desviacion típica de la variable de conteos:
+
+```{r, eval=TRUE}
+c(mean(test2$PPK),sd(test2$PPK))
+```
+Se nota tanto por los estadisticos como por las gráficas que hay mucha dispersión. Intentemos modelar los conteos con una regresión de Poisson:
+
+```{r, eval=TRUE}
+modelConteo = glm(PPK ~ ., data = test2, family = poisson)
+summary(modelConteo)
+```
+
+Veamos si este tipo de modelo explica los datos:
+```{r, eval=TRUE}
+1 - pchisq(summary(modelConteo)$deviance,
+           summary(modelConteo)$df.residual)
+```
+Acabamos de hipotetizar con el test anterior  que la data si está bien explicada por el modelo, pero el resultado, al ser menor que 0.05, sugiere que NO es así.
+
+La alternativa en esta situación es:
+
+```{r, eval=TRUE}
+library(MASS)
+modelConteo2=glm.nb(PPK ~ ., data= test2)
+summary(modelConteo2)
+```
+
+```{r, eval=TRUE}
+1 - pchisq(summary(modelConteo2)$deviance,
+           summary(modelConteo2)$df.residual)
+```
+
+Como el valor anterior nos sigue diciendo que el modelo no es el adecuado, debemos prestarle atención a los valores pequeños
+```{r, eval=TRUE}
+paste(sum(test2$PPK<200)/length(test2$PPK),max(test2$PPK))
+```
+
+Probemos entonces con un modelo de 'ceros-excesivos':
+
+```{r, eval=TRUE}
+library(pscl)
+modelConteo3=zeroinfl(PPK ~ ., data = test2,dist = "negbin")
+summary(modelConteo3)
+```
+
+Para que el modelo aporte a la explicación, necesitamos que este test sea significativo: 
+```{r, eval=TRUE}
+mnull <- update(modelConteo3, . ~ 1)
+pchisq(2 * (logLik(modelConteo3) - logLik(mnull)), df = ncol(test2)-1, lower.tail = FALSE)
+```
+
+Parece que hemos mejorado al Poisson:
+```{r, eval=TRUE}
+vuong(modelConteo, modelConteo3)
+```
+
+_____
+
+Ahora, si dividiésemos el conteo de votos entre la población, la razón encontrada nos da una _medición_:
+
+```{r, eval=TRUE}
+idh_elec$PPKpob=idh_elec$PPK/idh_elec$pobla
+hist(idh_elec$PPKpob)
+```
+
+Separemos este subconjunto:
+```{r, eval=TRUE}
+test3=idh_elec[,c('PPKpob','esperanza','secundaria','tiempoedu','percapitaf')]
+plot(test3) #aparecen relaciones lineales?
+```
+
+La mayor forma acampanada, nos anima a pensar en una regresión Gauss:
+
+```{r, eval=TRUE}
+modeloMedida <- glm(PPKpob ~ ., 
+                 data = test3, 
+                 family = gaussian)
+
+summary(modeloMedida)
+```
+
+Parece que fue una buena elección:
+
+```{r, eval=TRUE}
+1 - pchisq(summary(modeloMedida)$deviance,
+           summary(modeloMedida)$df.residual)
+```
+
+
+Sin embargo, dada la distribución de la densidad, el comportamiento de los residuos no se ajustará bien (se esperaba normalidad):
+```{r, eval=TRUE}
+qqnorm(residuals(modeloMedida))
+abline(a=0,b=1)
+```
+
+_____
+
+Calculemos ahora las diferencias entre ambos, y veamos cómo se distribuyem éstas:
+
+```{r, eval=TRUE}
+idh_elec$PPKdif=idh_elec$PPK-idh_elec$FP # calculando
+hist(idh_elec$PPKdif)  # viendo distribución
+```
+
+Tal distribución la podemos recodificar:
+
+```{r, eval=TRUE}
+
+idh_elec$PPKdif_O=ifelse(idh_elec$PPKdif==0,3,
+                         ifelse(idh_elec$PPKdif<0,2,4))
+
+idh_elec$PPKdif_O=ifelse(idh_elec$PPKdif<(-5000),1,idh_elec$PPKdif_O)
+idh_elec$PPKdif_O=ifelse(idh_elec$PPKdif>5000,5,idh_elec$PPKdif_O)
+
+# eso nos da:
+table(idh_elec$PPKdif_O)
+```
+
+Démosle formato a esa variable:
+
+```{r, eval=TRUE}
+theLevels=c(1,2,3,4,5)
+theLabels=c('pierdeMal','pierde','empata','gana','ganaBien')
+idh_elec$PPKdif_O=factor(idh_elec$PPKdif_O,
+                         levels=theLevels,
+                         labels = theLabels,
+                         ordered=T)
+
+# visualizando:
+barplot(table(idh_elec$PPKdif_O))
+```
+
+Como antes, creemos un subconjunto de datos:
+
+```{r, eval=TRUE}
+test4=idh_elec[,c('PPKdif_O','esperanza','secundaria','tiempoedu','percapitaf')]
+```
+
+Teniendo a la variable ordinal como la _Y_, veamos que sucede:
+
+```{r, eval=TRUE}
+library(ordinal)
+modelOrdi <- clm(PPKdif_O ~ ., data=test4)
+summary(modelOrdi)
+```
+
+Con:
+```{r, eval=TRUE}
+100*(exp(modelOrdi$beta)-1)
+```
+
+Si deseamos evitar el mensaje _warning_ anterior:
+
+```{r, eval=TRUE}
+test4s=test4
+test4s[,c(2:5)]=scale(test4s[,c(2:5)])
+
+## usando normalización
+modelOrdi_scaled <- update(modelOrdi,data=test4s)
+summary(modelOrdi_scaled)
+```
+
+```{r, eval=TRUE}
+100*(exp(modelOrdi_scaled$beta)-1)
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+library(MASS)
+modelOrd=polr(PPKdif_O ~ ., data=test4, Hess=TRUE)
+summary(modelOrd)
+modelOrd.coef <- data.frame(coef(summary(modelOrd)))
+modelOrd.coef$pval = round((pnorm(abs(modelOrd.coef$t.value), lower.tail = FALSE) * 2),2)
+modelOrd.coef
+
+modelOrd.or=exp(coef(modelOrd))
+(modelOrd.or-1)*100
+
+library(erer)
+modelOrd_mg<- ocME(w=modelOrd)
+modelOrd_mg$out
+
+
+#library(margins)
+#margins(modelOrdi_scaled)  #just glm
+```
+
+_____
+
+Finalmente, veamos esta otra data.
+
+```{r, eval=TRUE}
+library(openxlsx)
+idhName='idh_elect_Prov_06.xlsx'
+idhPath=file.path(folder,idhName)
+idhEl06=read.xlsx(idhPath)
+str(idhEl06)
+```
+
+La data nos muestra la votación que obtuvieron a nivel de provincia cada partido que participó en las elecciones del 2006. Además muestra los componentes del IDH para el 2007. Hay una columna al final, GANADOR, que se comporta así:
+
+```{r, eval=TRUE}
+table(as.factor(idhEl06$GANADOR))
+```
+
+Queremos saber qué componente del IDH favorece o no a un partido en relación al ganador al Partido de Humala. Sigamos los pasos:
+
+1. Declaremos a nuestra _Y_ como factor:
+
+```{r, eval=TRUE}
+idhEl06$GANADOR=as.factor(idhEl06$GANADOR)
+```
+
+2. Indiquemos cual es la variable de referencia:
+```{r, eval=TRUE}
+idhEl06$GANADOR = relevel(idhEl06$GANADOR, ref = "UNION POR EL PERU")
+```
+
+3. Creemos el subconjunto:
+
+```{r, eval=TRUE}
+test5=idhEl06[,c(5:8,29)]
+```
+
+4. Corramos el modelo
+```{r, eval=TRUE}
+library(nnet)
+modelMultinom=multinom(GANADOR ~ ., data=test5)
+summary(modelMultinom)
+```
+
+Todos los resultados se comparan con Humala. Por ejemplo, cada vez que haya un valor negativo, eso indica que el aumento del valor de esa variable del IDH aumenta la probabilidad del voto hacia Humala y no hacia el partido de esa fila. Si fuera positivo, es al revés.
+
+Claro, no todos los coeficientes son significativos, pero eso no ha sido reportado. Aqui los calculamos:
+
+```{r, eval=TRUE}
+z <- summary(modelMultinom)$coefficients/summary(modelMultinom)$standard.errors
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+```
+
+____
+
+
+```{r,echo=FALSE, eval=FALSE}
+fileName='RESULTADOS_EG_2006.xlsx'
+fileToRead=file.path(folder,fileName)
+v=read.xlsx(fileToRead,
+              skipEmptyRows = T)
+names(v)=c('ubiDis','ubiReg','ubiPro','reg','pro','dis','parti','votos')
+
+sumVotoPro=aggregate(votos ~ ubiReg + reg +ubiPro+pro+ parti, data=v,FUN=sum)
+
+#require(data.table) ## 1.9.2
+#v2 <- as.data.table(sumVotoPro)
+
+#provWin=v2[v2[, .I[votos == max(votos)], by=pro]$V1]
+write.xlsx(sumVotoPro,'data/eg2006_r1.xlsx')
+#write.csv(provWin,'data/eg2006_r1.csv',row.names = F)
+
+```
+
+## REVISAR
+
+La última data que hemos visto, se creó de esta manera:
+
+A) Datos de los resultados de las elecciones:
+
+
+```{r, eval=TRUE}
+library(openxlsx)
+
+fileName='eg2006_r1.xlsx'
+fileToRead=file.path(folder,fileName)
+data06=read.xlsx(fileToRead)
+head(data06)
+```
+
+Viendo estructura:
+```{r, eval=TRUE}
+str(data06)
+```
+
+
+Los partidos están en una columna, separemoslos:
+
+
+```{r, eval=TRUE}
+data06W <- reshape(data06,
+                       idvar = c("ubiReg","reg",'ubiPro','pro'),
+                       timevar = "parti", direction = "wide")
+head(data06W)
+```
+
+Eliminemos palabra 'voto.':
+```{r, eval=TRUE}
+names(data06W)=gsub("votos.", "", names(data06W))
+```
+
+Calculemos ganador por locacion:
+
+```{r, eval=TRUE}
+data06W$GANADOR=colnames(data06W[,-c(1:4)])[max.col(data06W[,-c(1:4)])]
+```
+
+Así va:
+```{r, eval=TRUE}
+head(data06W)
+```
+
+
+Traigamos la data de IDH 2007:
+
+```{r, eval=TRUE}
+library(openxlsx)
+folder='data'
+fileName='idhPeru.xlsx'
+fileToRead=file.path(folder,fileName)
+idh=read.xlsx(fileToRead,sheet = "IDH 2007",
+              startRow = 3,
+              skipEmptyRows = T)
+head(idh)
+```
+
+Quedarse sin las tres primeras:
+```{r, eval=TRUE}
+idh=tail(idh,-3)
+head(idh)
+```
+
+Ver parte inferior:
+```{r, eval=TRUE}
+tail(idh,10)
+```
+
+Eliminar ultimas seis filas:
+```{r, eval=TRUE}
+idh=head(idh,-6)
+tail(idh)
+```
+
+Eliminar columnas innecesarias (rankings):
+```{r, eval=TRUE}
+names(idh)
+```
+
+En _X3_ está el título del distrito, ese no se elimina; pero sí todos los demas que comienzan en 'X':
+
+```{r, eval=TRUE}
+# eliminando por posicion:
+idh=idh[,-c(seq(5,15,2))]
+names(idh)
+```
+
+Podemos renombrar:
+```{r, eval=TRUE}
+nuevos=c('ubiDis','distrito','pob','idh','espvida','secun','tiempoedu','ingrefami')
+names(idh)[c(1,3:9)]=nuevos
+
+#ver
+names(idh)
+```
+
+Ahora crear subconjuntos:
+
+1. De distritos. Deben ser las filas con datos completos en cada celda:
+```{r, eval=TRUE}
+distritos=idh[complete.cases(idh),]
+```
+
+2. Regiones. Nos llevamos las tres primeras columnas:
+```{r, eval=TRUE}
+DepsProvs=idh[,c(1:3)]
+head(DepsProvs)
+```
+
+Tal que las primeras 2 columnas esten completas y la ultima este ausente (missing):
+```{r, eval=TRUE}
+regiones=DepsProvs[complete.cases(DepsProvs[,c(1,2)]) & is.na(DepsProvs[,3]),]
+```
+
+3. Provincias. Tal que la primera y la tercera columnas esten completas y la segunda este ausente (missing):
+
+```{r, eval=TRUE}
+provincias=DepsProvs[complete.cases(DepsProvs[,c(1,3)]) & is.na(DepsProvs[,2]),]
+```
+
+Los datos de regiones y provincias tienen una columna con missing:
+```{r, eval=TRUE}
+head(provincias)
+```
+```{r, eval=TRUE}
+head(regiones)
+```
+
+Esas columnas se eliminan:
+```{r, eval=TRUE}
+regiones$distrito=NULL
+provincias$DEPARTAMENTO=NULL
+```
+
+Aqui debemos renombrar:
+```{r, eval=TRUE}
+names(regiones)=c('ubiReg','reg')
+names(provincias)=c('ubiPro','pro')
+```
+
+Estos dos data frames están listos. 
+
+4. Hay que preparar las columnas que faltan en la data de distritos:
+
+```{r, eval=TRUE}
+distritos$ubiReg=paste0(substr(distritos$ubiDis,1,2),'0000')
+distritos$ubiPro=paste0(substr(distritos$ubiDis,1,4),'00')
+```
+
+5. Ya estamos listos para el merge:
+
+```{r, eval=TRUE}
+#añado nombre de region
+distritos=merge(distritos,regiones,all.x = T)
+
+#añado nombre de provincia
+distritos=merge(distritos,provincias,all.x = T)
+```
+
+Que tenemos:
+```{r, eval=TRUE}
+head(distritos)
+```
+
+```{r, eval=TRUE}
+str(distritos)
+```
+
+Algunos retoques son MUY necesarios:
+
+* Recodificar columna _DEPARTAMENTO_ y renombrarla:
+```{r, eval=TRUE}
+#tener en cuenta que es 'character'
+distritos$DEPARTAMENTO=ifelse(distritos$DEPARTAMENTO=='1',1,0)
+names(distritos)[names(distritos)=="DEPARTAMENTO"] <- "ciudadCapital"
+```
+
+* Dar un orden adecuado a las columnas:
+```{r, eval=TRUE}
+distritos=distritos[,c(2,1,3,12,13,5,6:11,4)]
+head(distritos)
+```
+
+Transformar en numero algunas columnas:
+```{r, eval=TRUE}
+distritos[,c(7:12)]=lapply(distritos[,c(7:12)],as.numeric)
+```
+
+Nos quedamos con los componentes:
+```{r, eval=TRUE}
+# sin lo que se necesita:
+componentsDis=distritos[,-c(7,8,13)]
+```
+
+
+Y los agregamos a nivel provincia:
+```{r, eval=TRUE}
+idhProv=aggregate(cbind(espvida,secun,tiempoedu,ingrefami) ~ ubiReg+ubiPro+reg+pro, data=componentsDis,FUN=mean)
+head(idhProv)
+```
+
+Nótese que hay símbolos propios del español, es importante aqui cambiar esto.
+
+```{r, eval=TRUE}
+library(stringi)
+idhProv$pro=toupper(stri_trans_general(idhProv$pro,"Latin-ASCII"))
+idhProv$reg=toupper(stri_trans_general(idhProv$reg,"Latin-ASCII"))
+head(idhProv)
+```
+
+Vemos que _data06W_ no tiene ese problema, pero porsiacaso también la normalizamos:
+```{r, eval=TRUE}
+data06W$pro=toupper(stri_trans_general(data06W$pro,"Latin-ASCII"))
+data06W$reg=toupper(stri_trans_general(data06W$reg,"Latin-ASCII"))
+```
+
+Hemos hecho esto para tener más opciones para hacer el _merge_ de ambos documentos.
+
+Aquí veremos un problema con ambas fuentes de datos:
+
+```{r, eval=TRUE}
+head(merge(idhProv,data06W,
+        by='ubiPro',
+        all.x = T))[,c(1,4,11)]
+```
+
+Desafortunadamente, los ubigeos no son los mismos entre JNE (elecciones) y el INEI (usado por PNUD). Trabajemos así (por ahora).
+
+Como no podemos usar los ubigeos, lo que nos queda es hacerlo con los nombres. Para ello tenemos que concatenar nombre de region y provincia, pues puede haber nombres repetidos de provincias si se las toma solas.
+
+```{r, eval=TRUE}
+idhProv$key=paste0(idhProv$reg,idhProv$pro)
+data06W$key=paste0(data06W$reg,data06W$pro)
+```
+
+Veamos el merge:
+```{r, eval=TRUE}
+head(merge(idhProv,data06W,
+        by='key',
+        all.x = T),10)[,c(4,5,11,13)]
+```
+
+Esto esta mejor, pero nótese que hay valores perdidos. Primero hagamos el merge:
+
+```{r, eval=TRUE}
+# aqui si
+idh_elect_Prov_06=merge(idhProv,data06W,by='key',all.x = T)
+```
+
+Ahora preocupemosnos de los missing:
+
+```{r, eval=TRUE}
+idh_elect_Prov_06[!complete.cases(idh_elect_Prov_06),]
+```
+
+Cuando ponemos _all.x=T_ significa que todas las filas de x, en este caso _idhProv_, se presentarán en el resultado. Es decir, estas son las tres provincias que no se encontraron. Por los nombres, vemos que debemos hacer cambios manuales en la _key_:
+
+Cuáles son  los problemas?
+
+```{r, eval=TRUE}
+idh_elect_Prov_06[!complete.cases(idh_elect_Prov_06),]$pro.x
+```
+
+En qué fila están?
+
+```{r, eval=TRUE}
+what=idh_elect_Prov_06[!complete.cases(idh_elect_Prov_06),]$pro.x
+idhProv[idhProv$pro%in%what,]
+```
+
+Cambiemos:
+
+```{r, eval=TRUE}
+change=c("ANTONIO RAIMONDI", "DANIEL ALCIDES CARRION","SATIPO")
+idhProv[idhProv$pro%in%what,]$pro=change
+```
+
+Creemos nueva _key_:
+```{r, eval=TRUE}
+idhProv$key=paste0(idhProv$reg,idhProv$pro)
+```
+
+Rehacemos el merge:
+```{r, eval=TRUE}
+idh_elect_Prov_06=merge(idhProv,data06W,by='key',all.x = T)
+```
+
+Ya debe estar OK:
+```{r, eval=TRUE}
+idh_elect_Prov_06[!complete.cases(idh_elect_Prov_06),]
+```
+
+Así es. Qué tenemos?
+
+```{r, eval=TRUE}
+str(idh_elect_Prov_06)
+```
+
+Podemos hacer alguna limpieza:
+
+```{r, eval=TRUE}
+names(idh_elect_Prov_06)=gsub(".x", "", names(idh_elect_Prov_06))
+idh_elect_Prov_06=idh_elect_Prov_06[,-c(1,10:13)]
+str(idh_elect_Prov_06)
+```
+
+Esto lo guardamos, y es el archivo que usaste antes:
+
+```{r, eval=FALSE}
+##CUIDADO: NO LO EJECUTES SI NO ESTA BIEN LO QUE HAS HECHO!!!
+nombreArch='idh_elect_Prov_06.xlsx'
+archGuardar=file.path(folder,nombreArch)
+write.xlsx(idh_elect_Prov_06,archGuardar)
+```
+
+```{r,echo=FALSE, eval=FALSE}
+what=names(data06)[3:22]
+long=reshape(data06, timevar ="partido", times = what,
+        varying=list(what),
+        direction = 'long')
+
+
+write.csv(long,'long06.csv')
+```
+
+
+[Inicio](#beginning)
+
+
+______
+
+
+<br></br>
+
+####[VOLVER AL SILABO](https://inteligenciaperu.github.io/Estadistica/)
