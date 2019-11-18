@@ -18,11 +18,77 @@ ____
 <center> <header><h2>Otros modelos</h2>  </header></center>
 ____
 
+
+## 1. Regresión Tobit
+
+
+Veamos estos resultados academicos:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vS52b1wXYlsPgZ5o0Vw6cooy6nNQe7lsTsHF_AO1DhMbgxiM1xlWXepapodzpUhmuBzhK2mO7SX3LtB/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+
+Se desea probar la relación del nivel de matemática, lectura y del tipo de programa escolar, en el nivel obtenido en un test de ingreso a la universidad. El test va de 200 a 800.
+
+Traigamos la data:
+
+```{r}
+
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vS52b1wXYlsPgZ5o0Vw6cooy6nNQe7lsTsHF_AO1DhMbgxiM1xlWXepapodzpUhmuBzhK2mO7SX3LtB/pub?gid=0&single=true&output=csv"
+
+escuela = read.csv(link)
+```
+
+Aquí corresponde una regresión Tobit.
+
+```{r, message=FALSE}
+library(VGAM)
+
+escuela_tobit <- VGAM::vglm(apt ~ ., tobit(Upper = 800), data = escuela)
+summary(escuela_tobit)
+```
+
+
+## 2. Regresión Poisson
+
+Veamos algo de la situación de las familias en las Filipinas:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSndImAy2ys7_-PMxNNq44OkwbjGikrigB32lBM0co-JOz0e2P8zBkAc6bqxTAB8Cg9mnV-VUcvMn-p/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+
+Se desea tener como dependiente al numero de miembros de la familia que trabaja sin considerar al jefe de familia, y a las demas variables como predictoras. 
+
+```{r}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vSndImAy2ys7_-PMxNNq44OkwbjGikrigB32lBM0co-JOz0e2P8zBkAc6bqxTAB8Cg9mnV-VUcvMn-p/pub?gid=0&single=true&output=csv"
+casa=read.csv(link)
+```
+
+```{r}
+summary(casa)
+```
+
+```{r}
+casa_poisson=glm(Total_members_employed~.,family = poisson, data=casa)
+summary(casa_poisson)
+```
+
+
+```{r, message=FALSE}
+exp(confint(casa_poisson))
+```
+
+Una cosa muy importante: ¿Habrá sobre dispersion?
+
+```{r, message=FALSE}
+#library(AER)
+AER::dispersiontest(casa_poisson,trafo=1)
+```
+
+
+## 3. Regresión Ordinal
+
+
 Traigamos varios indicadores e indices de Perú:
 
 <iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRIELLZGB7UZfNMSHmPExFW6BsCwjWvCcNJV4uvjRd9Tnwq0DqveCBOhJhKwWaRxtPedAxrI6rHY9Ps/pubhtml?widget=true&amp;headers=false"></iframe>
 
-## 1. Regresión Ordinal
 
 ```{r carga}
 link='https://docs.google.com/spreadsheets/d/e/2PACX-1vRIELLZGB7UZfNMSHmPExFW6BsCwjWvCcNJV4uvjRd9Tnwq0DqveCBOhJhKwWaRxtPedAxrI6rHY9Ps/pub?gid=550147750&single=true&output=csv' 
@@ -57,7 +123,7 @@ reg1Data$costa <- as.factor(reg1Data$costa)
 table(reg1Data$costa)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library("oglmx")
 modelOrd=ologit.reg(IDHord ~ .,
                   data = reg1Data)
@@ -69,7 +135,7 @@ summary(modelOrd)
 ```
 
 
-## 2. Regresión Beta
+## 4. Regresión Beta
 
 Veamos una numérica porcentual:
 
@@ -98,7 +164,7 @@ summary(modelBeta)
 <!---
 https://rcompanion.org/handbook/J_02.html
 --->
-## Parte 3. Regresión y variables latentes:
+## 5.  Ecuaciones Estructurales:
 
 Si quisieramos demostrar la hipótesis que el IDH depende del IDH, la VULnerabilidad y de la ubicación de la provincia...
 
@@ -123,7 +189,7 @@ perudat$costa=as.numeric(as.factor(perudat$costa))
 
 
 3. Calcular
-```{r}
+```{r, message=FALSE}
 library(lavaan)
 
 # Calculos
@@ -144,7 +210,7 @@ kable(allParamSEM[allParamSEM$op=="~",])
 ```
 
 * Cargas
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 kable(allParamSEM[allParamSEM$op=="=~",])
 ```
 
@@ -172,6 +238,7 @@ regLat2<-sem(modelo2, data=perudat)#, fixed.x=FALSE)
 
 ```
 
+Se puede plantear otros modelo:
 
 ```{r}
 
@@ -186,20 +253,20 @@ regLat2<-sem(modelo2, data=perudat, fixed.x=FALSE)
 Estos son los resultados:
 
 * Regresiones
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 allParamSEM=parameterEstimates(regLat2,standardized = T)
 
 kable(allParamSEM[allParamSEM$op=="~",])
 ```
 
 * Cargas
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 kable(allParamSEM[allParamSEM$op=="=~",])
 ```
 
 Visualmente:
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 semPaths(regLat2, what='std', nCharNodes=6, sizeMan=5,
          edge.label.cex=1.25, curvePivot = TRUE, fade=FALSE,color='black')
 ```
@@ -208,7 +275,7 @@ semPaths(regLat2, what='std', nCharNodes=6, sizeMan=5,
 Qué tan bueno es el modelo?
 
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 allFitSEM=as.list(fitMeasures(regLat2))
 ```
 
@@ -220,13 +287,13 @@ allFitSEM[c("chisq", "df", "pvalue")] # pvalue>0.05
 
 * El Índice Tucker Lewi es mayor a 0.9?
 
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 allFitSEM$tli # > 0.90
 ```
 
 * La Raíz del error cuadrático medio de aproximación es menor a 0.05?
 
-```{r,echo=FALSE}
+```{r,echo=TRUE}
 allFitSEM[c( 'rmsea.ci.lower','rmsea','rmsea.ci.upper')] #  toca 0.08
 ```
 
