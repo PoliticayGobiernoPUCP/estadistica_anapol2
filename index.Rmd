@@ -36,7 +36,7 @@
 * [Regresión Cox](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/duracion.html)
 * [Otros modelos de regresión](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/otrasRegs.html)
 
-### Unidad 4: Presentación de reportes estadísticos
+### Unidad 4: [Presentación de reportes estadísticos](https://htmlpreview.github.io/?https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/blob/master/mapping.html)
 * Estructura
 * Gráficas
 * Publicación

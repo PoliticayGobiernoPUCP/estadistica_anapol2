@@ -1,0 +1,174 @@
+
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Mapas y clusters</h2>  </header></center>
+____
+
+
+<a id='beginning'></a>
+
+Tenemos estos datos:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTvsTU32CalkyD9enxm6AqaZXP52Ec8Ty_e0SKGPr8BdPSwVEJo5WQ-0x-s7Kf21k66D7kTtlgPJT7-/pubhtml?gid=1129815803&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+
+Leyendo...
+```{r, eval=FALSE}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vTvsTU32CalkyD9enxm6AqaZXP52Ec8Ty_e0SKGPr8BdPSwVEJo5WQ-0x-s7Kf21k66D7kTtlgPJT7-/pub?gid=1129815803&single=true&output=csv"
+provinciasNew=read.csv(link, stringsAsFactors = F)
+```
+
+
+Verificando...
+
+```{r, eval=FALSE}
+str(provinciasNew)
+```
+
+
+Preparando matriz de distancias:
+
+```{r, eval=FALSE}
+library(cluster)
+g.dist = daisy(provinciasNew[,c(7:11)])
+```
+
+Obteniendo e clusters...
+
+```{r, eval=FALSE}
+library(factoextra)
+
+res.agnes<- hcut(g.dist, k = 3,hc_func='agnes',hc_method = "ward.D")
+
+provinciasNew$cluster=res.agnes$cluster
+
+```
+
+Hasta aqui tienes tu data con una columa indicando el cluster al que el pais pertenece.
+
+Ahora traigamos un mapa de Provincias del Peru:
+
+```{r, eval=FALSE}
+# instalar:
+library(sp)
+library(geojsonio)
+library(rgdal)
+
+fromGit="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PER_adm2.json" # link desde github
+
+PeruProvs <- rgdal::readOGR(fromGit,stringsAsFactors = FALSE)
+
+```
+
+
+
+Sin problema, el mapa se dibujará.
+```{r, eval=FALSE}
+plot(PeruProvs, border='grey')
+```
+
+Como tenemos que combinar la data con el cluster y el mapa, veamos en el mapa donde aparece el nombre de la provincia:
+
+```{r, eval=FALSE}
+head(PeruProvs@data)
+```
+
+
+Podemos ver que en NAME_2 estan los nombres de provincias (ordenados):
+```{r, eval=FALSE}
+sort(PeruProvs@data$NAME_2)
+```
+
+Se parecen a los que tenemos?
+```{r, eval=FALSE}
+provinciasNew$provinciaNombre
+```
+
+Como hay acentos los eliminamos:
+
+```{r, eval=FALSE}
+library(stringi)
+
+PeruProvs$NAME_2=stri_trans_general(str = PeruProvs$NAME_2, 
+                                        id = "Latin-ASCII")
+provinciasNew$provinciaNombre=stri_trans_general(str = provinciasNew$provinciaNombre, 
+                                        id = "Latin-ASCII")
+
+```
+
+
+Probemos el merge:
+
+```{r, eval=FALSE}
+test=merge(PeruProvs@data,provinciasNew,by.x='NAME_2',by.y='provinciaNombre',all.x=T,all.y=T)
+test$id=NULL
+test[!complete.cases(test),]
+```
+
+Vemos que podemos recuperar 3 provincias en _provinciasNew_:
+
+```{r, eval=FALSE}
+provinciasNew[provinciasNew$provinciaNombre=="Daniel A. Carrion","provinciaNombre"]="Daniel Alcides Carrion"
+
+provinciasNew[provinciasNew$provinciaNombre=="Huanuco","provinciaNombre"]="Huenuco"
+
+provinciasNew[provinciasNew$provinciaNombre=="Satipo 1/","provinciaNombre"]="Satipo"
+
+```
+
+
+Luego de los cambios:
+
+```{r, eval=FALSE}
+ProvsFull=merge(PeruProvs,provinciasNew,by.x='NAME_2',by.y='provinciaNombre')
+```
+
+
+Hallemos tres clusters:
+1. Posiciones:
+
+```{r, eval=FALSE}
+names(ProvsFull)
+```
+
+
+
+Para graficar, deberiamos tener idea de la posicion de las provincias:
+
+```{r, eval=FALSE}
+aggregate(ide2012~cluster,data=ProvsFull,FUN = mean)
+```
+
+Recodifiquemos facilmente con el paquete **car**:
+
+```{r, eval=FALSE}
+library(car)
+
+# ejecutar (run) UNA VEZ!!!
+ProvsFull@data$cluster<-recode(ProvsFull@data$cluster,"1=2;2=1;3=3") 
+```
+
+Ahora sí grafiquemos:
+
+```{r, eval=FALSE}
+# colores
+myColors=c('orange','grey','green') # para 1,2 ,3
+
+plot(PeruProvs,col='black', main='Densidad del Estado \n usando clusters')
+plot(ProvsFull,col=myColors[ProvsFull$cluster],add=T,border=NA)
+```
+
+
