@@ -116,6 +116,7 @@ democ$Rank=NULL
 La columna _Score_ de la tabla _democ_ podriamos cambiar para no olvidar qué representa:
 
 ```{r, eval=FALSE}
+names(democ)[2]='ScoreDemo'
 names(democ)[names(democ)=='Score']='ScoreDemo'
 ```
 
@@ -144,7 +145,7 @@ El _key_ es _Country_, usemoslo de manera explicita una vez
 # el x es data frame de la derecha/ el y de la izquierda
 # solo dos a la vez.
 corrgdp=merge(corru,gdp,by.x='Country', by.y='Country') # no era necesario KEY aqui!
-corrgdpdemo=merge(corrgdp,democ)
+corrgdpdemo=merge(corrgdp,democ,all = T) 
 ```
 
 Veamos el resultado:
@@ -290,7 +291,7 @@ Un caso especial es cuando tienes un archivo en Excel, pues este puede tener var
 #link
 lkexcel="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/viaticos_2018_nac.xlsx"
 #descargando en carpeta actual
-download.file(lkexcel, "file.xlsx")
+download.file(lkexcel, "file.xlsx",mode = )
 ```
 
 * Leer todas las hoas y aplicar **rbind**:
@@ -333,10 +334,10 @@ Se ve que cada fila es un distrito:
 head(agua)
 ```
 
-La data muestra la cantidad de viviendas por distrito que tienen agua toda la semana o no. Como una provincia tiene varias provincias podriamos crear un data frame a nivel de departamento.
+La data muestra la cantidad de viviendas por distrito que tienen agua toda la semana o no. Como un Departamento tiene varias provincias podriamos crear un data frame a nivel de departamento.
 
 ```{r, eval=FALSE}
-aggregate(cbind(todaSemana, NoTodaSemana) # dependientes
+DepaAgua=aggregate(cbind(todaSemana, NoTodaSemana) # dependientes
           ~ Departamento, # nivel
           data = agua,    # data
           sum)            # operacion

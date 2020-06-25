@@ -105,7 +105,8 @@ str_extract_all('25.3%,0% y -23.5% 13 34 hola', "(\\d+\\.*\\d*)(?=\\%)")
 ```{r, eval=FALSE}
 # porcentaje sin el simbolo hasta negativos
     
-str_extract_all('25.3%,0% y -23.5% 13 34 hola', "(\\-*\\d+\\.*\\d*)(?=\\%)")
+str_extract_all('25.3%,0% y -23.5% 13 34 hola',
+                "(\\-*\\d+\\.*\\d*)(?=\\%)")
 ```
 
 
@@ -141,7 +142,8 @@ str_extract_all(urban$Urbanization,pattern="(\\-*\\d+\\.*\\d*)(?=\\%)")
 La estructura obtenida no facilitaria el trabajo de producir dos columnas. El usar **simplify** lo hace mas facil:
 
 ```{r, eval=FALSE}
-str_extract_all(urban$Urbanization,pattern="(\\-*\\d+\\.*\\d*)(?=\\%)",simplify = T)
+str_extract_all(urban$Urbanization,pattern="(\\-*\\d+\\.*\\d*)(?=\\%)",
+                simplify = T)
 ```
 
 Esa matriz anterior me permite acceder a cada columna asi:
@@ -151,10 +153,12 @@ PATRON="(\\-*\\d+\\.*\\d*)(?=\\%)"
 COLSUCIA=urban$Urbanization
 
 # UNA COLUMNA
-urban$pop_urb=str_extract_all(string = COLSUCIA,pattern=PATRON,simplify = T)[,1]
+urban$pop_urb=str_extract_all(string = COLSUCIA,
+                              pattern=PATRON,simplify = T)[,1]
 
 # OTRA COLUMNA
-urban$rate_urb=str_extract_all(string = COLSUCIA,pattern=PATRON,simplify = T)[,2]
+urban$rate_urb=str_extract_all(string = COLSUCIA,
+                               pattern=PATRON,simplify = T)[,2]
 ```
 
 
@@ -250,6 +254,11 @@ Los interpretes pueden facilitar en algo, cuando se trate de un único número e
 library(readr)
 parse_number(urban$Urbanization)
 ```
+```{r}
+#parse_number("$139,100")
+
+gsub(',|\\$',"","$139,100")
+```
 
 Pero sólo recupera el primer valor.
 
@@ -275,6 +284,7 @@ Una vez que la data está limpia hay que verificar el tipo de datos con **str()*
 ```{r, eval=FALSE}
 str(urban)
 ```
+
 
 Eliminemos las columnas repetidas y la original sucia usando **NULL**:
 ```{r, eval=FALSE}

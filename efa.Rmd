@@ -52,8 +52,8 @@ names(demo)=str_split(names(demo)," ",simplify = T)[,1]
 ## Formateo
 
 # Eliminemos columnas que no usaremos esta vez:
-happy$Overall=NULL
-demo[,c(1,9,10)]=NULL
+happy[,c('Overall','Rank')]=NULL
+demo[,c('Changes','Rank')]=NULL
 
 # También debemos tener nombres diferentes en los scores antes del merge:
 
@@ -64,7 +64,7 @@ names(demo)[names(demo)=="Score"]="ScoreDemo"
 # Tipo de variables:
 
 ## En demo:
-demo[,-c(1)]=lapply(demo[,-c(1)],as.numeric)
+demo[,-c(1,8,9)]=lapply(demo[,-c(1,8,9)],as.numeric)
 
 # En happy:
 happy[,-c(1)]=lapply(happy[,-c(1)],as.numeric)
@@ -80,7 +80,7 @@ demo=na.omit(demo)
 nrow(merge(happy,demo))
 ```
 
-Hagamos un **nuevo** merge, donde nos quedemos con **TODOS** los paises que no estab en uno u otro data frame:
+Hagamos un **nuevo** merge, donde nos quedemos con **TODOS** los paises que no estaban en uno u otro data frame:
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 HappyDemo=merge(happy,demo,all.x=T, all.y=T)
@@ -110,6 +110,8 @@ demo[demo$Country=="Republic of the Congo",'Country']="Congo (Brazzaville)"
 demo[demo$Country=="Trinidad and Tobago",'Country']="Trinidad & Tobago"
 demo[demo$Country=="North Macedonia",'Country']="Macedonia"
 
+demo[demo$Country=="United States",'Country']="United States of America"
+
 ## en happy por demo
 happy[happy$Country=="Palestinian Territories",'Country']="Palestine"
 
@@ -122,19 +124,21 @@ HappyDemo=merge(happy,demo) # re creando HappyDemo
 nrow(HappyDemo)
 ```
 
-En efecto se recuperaron 5 paises, asi quedará.
+En efecto se recuperaron países; así quedará.
 
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/rQZiy7GE-LM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-## Evaluando data
+## Proceso del Analisis Factorial Exploratorio (EFA)
 
-El análisis factorial requiere que hagamos algunas observaciones previas.
+El análisis factorial exploratorio requiere que hagamos algunas observaciones previas.
 
 1. Calculemos matriz de correlación:
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+dontselect=c("Country","ScoreHappy","ScoreDemo","Regimetype","Region")
+select=setdiff(names(HappyDemo),dontselect) 
+theData=HappyDemo[,select] # sin los Scores ni nombre de país.
 
-theData=HappyDemo[,-c(1,2,9)] # sin los Scores ni nombre de país.
 
 # esta es:
 library(polycor)
@@ -208,7 +212,7 @@ print(resfa$loadings)
 * Resultado mejorado:
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
-print(resfa$loadings,cutoff = 0.51)
+print(resfa$loadings,cutoff = 0.5)
 ```
 
 Cuando logramos que cada variable se vaya a un factor, tenemos una _estructura simple_.
@@ -221,29 +225,29 @@ fa.diagram(resfa)
 
 7. Evaluando Resultado obtenido:
 
-* La Raíz del error cuadrático medio corregida está cerca a cero?
+* ¿La Raíz del error cuadrático medio corregida está cerca a cero?
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$crms
 ```
 
-* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+* ¿La Raíz del error cuadrático medio de aproximación es menor a 0.05?
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$RMSEA
 ```
 
-* El índice de Tucker-Lewis es mayor a 0.9:
+* ¿El índice de Tucker-Lewis es mayor a 0.9?
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
 resfa$TLI
 ```
 
-* Que variables aportaron mas a los factores?
+* ¿Qué variables aportaron mas a los factores?
 ```{r}
 sort(resfa$communality)
 ```
 
-* Que variables contribuyen a mas de un factor?
+* ¿Qué variables contribuyen a mas de un factor?
 
 ```{r}
 sort(resfa$complexity)
@@ -254,7 +258,7 @@ sort(resfa$complexity)
 ¿Qué nombres les darías?
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
-as.data.frame(resfa$scores)
+as.data.frame(resfa$scores)%>%head()
 ```
 
 ```{r, fig.width=8, fig.height=8 ,echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
@@ -285,12 +289,13 @@ library(dbscan)
 
 g.dist.cmd = daisy(HappyDemoFA[,c(2:4)], metric = 'euclidean')
 kNNdistplot(g.dist.cmd, k=3)
+abline(h=0.63,col='red')
 ```
 
 Para tener una idea de cada quien:
 
 ```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
-resDB=fpc::dbscan(g.dist.cmd, eps=0.6, MinPts=3,method = 'dist')
+resDB=fpc::dbscan(g.dist.cmd, eps=0.63, MinPts=3,method = 'dist')
 HappyDemoFA$clustDB=as.factor(resDB$cluster)
 aggregate(cbind(MR1, MR2,MR3) # dependientes
           ~ clustDB, # nivel
@@ -306,6 +311,37 @@ plot_ly(data=HappyDemoFA, x = ~MR1, y = ~MR2, z = ~MR3, text=~Country, color = ~
                      yaxis = list(title = 'Tranquilidad'),
                      zaxis = list(title = 'Bienestar')))
 
+```
+
+
+Finalmente, veamos relaciones:
+
+```{r, eval=TRUE, message=FALSE}
+library(BBmisc)
+HappyDemo$faDemo=normalize(HappyDemoFA$MR1, 
+                       method = "range", 
+                       margin=2, # by column
+                       range = c(0, 10))
+
+HappyDemo$faHappyInd=normalize(HappyDemoFA$MR2, 
+                       method = "range", 
+                       margin=2, # by column
+                       range = c(0, 10))
+
+HappyDemo$faHappySoc=normalize(HappyDemoFA$MR3, 
+                       method = "range", 
+                       margin=2, # by column
+                       range = c(0, 10))
+
+
+
+```
+
+You can see them all here:
+
+```{r, eval=TRUE}
+plot(HappyDemo[,c("ScoreDemo","ScoreHappy","faDemo","faHappyInd",
+                  "faHappySoc")])
 ```
 
  Aqui acaba la Unidad II, el analisis factorial confirmatorio se verá en la siguiente Unidad.

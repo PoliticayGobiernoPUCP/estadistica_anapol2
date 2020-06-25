@@ -1,0 +1,210 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+# Practicando clustering:
+
+Pasos previos:
+
+* Descargue las puntuaciones de felicidad de cada país de este link:
+[https://en.wikipedia.org/wiki/World_Happiness_Report](https://en.wikipedia.org/wiki/World_Happiness_Report)
+
+* Descargue las puntuaciones de democracia de cada país de este link:
+[https://en.wikipedia.org/wiki/Democracy_Index](https://en.wikipedia.org/wiki/Democracy_Index)
+
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+# descarga
+library(htmltab)
+
+happyL="https://en.wikipedia.org/wiki/World_Happiness_Report"
+happyPath='//*[@id="mw-content-text"]/div/table/tbody'
+
+demoL="https://en.wikipedia.org/wiki/Democracy_Index"
+demoPath='//*[@id="mw-content-text"]/div/table[2]/tbody'
+
+happy = htmltab(doc = happyL,which  = happyPath,encoding = "UTF-8")
+
+demo = htmltab(doc = demoL,which  = demoPath,encoding = "UTF-8")
+
+
+```
+```{r, echo=FALSE, eval=TRUE,warning=FALSE, message=FALSE}
+#limpieza
+library(stringi)
+library(stringr)
+
+#nombres simples
+names(happy)=str_split(names(happy)," ",simplify = T)[,1]
+names(happy)[names(happy)=="Score"]="ScoreHappy"
+names(happy)=stri_trans_general(names(happy), "latin-ascii")
+
+names(demo)=str_split(names(demo)," ",simplify = T)[,1]
+names(demo)[names(demo)=="Score"]="ScoreDemo"
+names(demo)=stringi::stri_trans_general(names(demo), "latin-ascii")
+
+# data sin espacios blancos
+happy[,]=lapply(happy[,], trimws,whitespace = "[\\h\\v]") # no blanks
+demo[,]=lapply(demo[,], trimws,whitespace = "[\\h\\v]") # no blanks
+
+# data sin caracteres especiales
+happy[,]=lapply(happy[,], stri_trans_general, "latin-ascii")
+demo[,]=lapply(demo[,], stri_trans_general, "latin-ascii")
+
+#sin missing
+happy=na.omit(happy) 
+demo=na.omit(demo) 
+
+
+```
+
+
+* Todos las columnas que forman ambos indices se usarán. Si desea quédese con lo indispensable: 
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+fromHappy=c("Country","GDP","Social","Healthy","Freedom","Generosity","Perceptions" )
+happy=happy[,fromHappy]
+
+
+fromDemo=c("Country","Electoral","Functio-ning","Politicalpartici-pation","Politicalculture","Civilliberties")
+demo=demo[,fromDemo]
+
+```
+
+* Una ambas tablas.
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+
+dataintegrada=merge(happy,demo)
+dataintegrada=na.omit(dataintegrada)
+```
+
+
+* Verifique que tiene los datos listos para aplicar la tecnica de clusterizacion.
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+
+
+dataintegrada[,2:12]=lapply(dataintegrada[,2:12],as.numeric)
+
+```
+
+* Prepare los datos para el analisis cluster, use como semilla aleatoria al numero **123**.
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+library(cluster)
+
+set.seed(123)
+row.names(dataintegrada)=dataintegrada$Country
+g.dist = daisy(dataintegrada[,2:12], metric="gower")
+
+```
+
+* Calcule 3 clusters usando la técnica de pam(k-medoides) y la jerarquica aglomerativa:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+library(factoextra)
+res.pam=pam(g.dist,3,cluster.only = F)
+dataintegrada$pam=res.pam$cluster
+res.agnes <- hcut(g.dist, k = 3,hc_func='agnes')
+dataintegrada$agnes=res.agnes$cluster
+```
+
+### Responda:
+
+1. ¿Se debió obtener 3 clusters usando k-medoides, u otro valor era mejor?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_nbclust(dataintegrada[,2:12], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+2. ¿Se debió obtener 3 clusters usando jerarquizacion aglomerativa, u otro valor era mejor?
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+fviz_nbclust(dataintegrada[,2:12], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+
+3. Si se mantiene pedir tres clusters en ambos procedimientos ¿Cuál clusterizó mejor?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+
+
+4. Si se mantiene pedir tres clusters en ambos procedimientos ¿ Cuántos países de los mal clusterizados k-medoides nos quedaría si no contásemos los mal clusterizados por jerarquizacion aglomerativa?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']
+
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']
+
+##
+
+# respuesta: Los mismos de PAM pues no hubo interseccion)
+length(setdiff(poorPAM,poorAGNES))
+
+```
+
+
+5. Si usamos _dbscan_, ¿Cuántos clusters se formarían si usamos un epsilon de 0.09?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+proyeccion = cmdscale(g.dist, k=2,add = T) # k is the number of dim
+# data frame prep:
+dataintegrada$dim1 <- proyeccion$points[,1]
+dataintegrada$dim2 <- proyeccion$points[,2]
+
+g.dist.cmd = daisy(dataintegrada[,c('dim1','dim2')], metric = 'euclidean')
+
+# MinPts=11 columnas de input
+
+library(fpc)
+db.cmd = dbscan(g.dist.cmd, eps=0.09, MinPts=11,method = 'dist')
+
+# respuesta: 2 clusters
+
+db.cmd
+
+```
+
+6. Si usamos _dbscan_, ¿Qué países no fueron clusterizados (atípicos)?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+dataintegrada$dbscan=db.cmd$cluster
+
+# respuesta:
+dataintegrada[dataintegrada$dbscan==0,'Country']
+```
+
+7. ¿Qué paises coinciden entre los atipicos de _dbscan_ y los mal clusterizados por jerarquizacion aglomerativa:
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+atiDB=dataintegrada[dataintegrada$dbscan==0,'Country']
+
+# respuesta
+
+intersect(atiDB,poorAGNES)
+```
+
+8. ¿Hay alguno de los países del cluster más bajo calculado con agnes  que sea parte de los países difíciles de clusterizar en las *dbscan*?
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE}
+
+# cual es el mas bajo en algo en agnes
+aggregate(.~agnes,data=dataintegrada[,c(2:12,14)],mean)
+
+lowestClust=dataintegrada[dataintegrada$agnes==1,"Country"]
+intersect(lowestClust,atiDB)
+```
+

@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 <center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
 
 <center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
