@@ -1,0 +1,15 @@
+Examen de EAP2
+
+Valeria 
+
+
+##pregunta:
+
+```{r}
+1+1
+```
+
+```{r}
+
+```
+

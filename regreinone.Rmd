@@ -1,0 +1,49 @@
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+
+library(rio)
+linkToData='https://github.com/PsicologiaPUCP/ArchivosDeDatos/raw/master/hsb_ok.sav'
+hsb=import(linkToData)
+```
+
+
+```{r}
+summary(hsb)
+```
+
+```{r}
+# hipotesis:
+# Que tanto el nivel de matematica puede explicarse por el nivel alcanzado en escritura, ciencias, controlando por sexo.
+hsb$RACE=as.factor(hsb$RACE)
+hipotesisLin= formula(MATH ~ WRTG + SCI + RACE)
+
+regLin=lm(hipotesisLin,data=hsb)
+
+summary(regLin)
+```
+
+
+```{r}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vTnBAuw8v3PgGMivOBI9tFfGjVrZsVnteUF2y44HjZneYoajlrb9k61kWN300Q-n1q04iy8_nsB68n_/pub?gid=1431542138&single=true&output=csv"
+vol=read.csv(link, stringsAsFactors = F)
+summary(vol)
+```
+
+```{r}
+vol[,c(3,4)]=lapply(vol[,c(3,4)],as.factor)
+
+hipotesisLog=formula(volunteer~neuroticism+extraversion+sex)
+
+regLog=glm(hipotesisLog, data=vol,family = binomial)
+
+summary(regLog)
+```
+```{r  model1_interpre_margins}
+# interpretacion usando marginal effects:
+library(margins)
+# 
+(model = margins(regLog))
+
+```
+
