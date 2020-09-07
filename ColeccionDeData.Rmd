@@ -228,7 +228,7 @@ dim(serenosSI_all)
 <a id='part4'></a>
 
 
-##‘Scraping’ tablas de datos
+## ‘Scraping’ tablas de datos
 
 Las tablas de datos en la web pueden ser descargadas con facilidad, si se consigue identificar la ruta hacia ella. Cuando identifiques una tabla que te interesa, usa el botón derecho de tu mouse para inspeccionar el código de la página web. Usa la opción inspección hasta que **resalte toda** la tabla.
 
