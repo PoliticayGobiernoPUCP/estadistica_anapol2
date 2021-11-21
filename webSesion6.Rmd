@@ -1,0 +1,299 @@
+---
+title: "Sesión 6"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Análisis de Conglomerados (II)</h2>  </header></center>
+____
+
+Traigamos un archivo del COVID a nivel mundial:
+
+```{r}
+#limpiar memoria
+rm(list = ls())
+###
+linkCovid="https://github.com/owid/covid-19-data/raw/master/public/data/owid-covid-data.csv"
+allCovid=read.csv(linkCovid)
+```
+
+El objeto **allCovid** tiene esta cantidad de filas:
+```{r}
+nrow(allCovid)
+```
+El objeto **allCovid** tiene esta cantidad de columnas:
+
+```{r}
+ncol(allCovid)
+```
+
+Veamos el tipo de dato *date*:
+```{r}
+str(allCovid$date)
+```
+La fecha está como character, por lo que no se podría sacar cálculos:
+```{r}
+summary(allCovid$date)
+```
+
+Si deseas que sea fecha:
+```{r}
+allCovid$date=as.Date(allCovid$date,format="%Y-%m-%d")
+```
+
+Verificando:
+
+```{r}
+str(allCovid$date)
+```
+Y calculando:
+```{r}
+summary(allCovid$date)
+```
+Quedémonos con los datos del 31 de julio de 2021:
+```{r}
+covidJulio21=allCovid[allCovid$date=="2021-07-31",]
+```
+
+Quedemonos con algunas variables, las cuáles están definidas aqui:
+
+<iframe
+  src="https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-codebook.csv"
+  style="width:100%; height:300px;"
+></iframe>
+
+
+Nos quedaremos con:
+
+* **total_cases_per_million**: Total confirmed cases of COVID-19 per 1,000,000 people.
+
+* **total_deaths_per_million**: Total deaths attributed to COVID-19 per 1,000,000 people.
+
+* **aged_65_older**: Share of the population that is 65 years and older, most recent year available.
+
+* **population_density**: 	Number of people divided by land area, measured in square kilometers, most recent year available
+
+Seleccionemos esas variables, incluyendo **iso_code** y **location**:
+
+```{r}
+selec=c("iso_code","location","total_cases_per_million","total_deaths_per_million","aged_65_older","population_density")
+covidJulio21=covidJulio21[,selec]
+```
+
+El **iso_code** es de tres caracteres, pero hay algunos de mayor tamaño:
+```{r}
+table(nchar(covidJulio21$iso_code))
+```
+Nos quedaremos con los que tienen sólo tres caracteres:
+
+```{r}
+covidJulio21=covidJulio21[nchar(covidJulio21$iso_code)==3,]
+```
+
+**covidJulio21** debe tener varios valores perdidos, veamos qué países los tienen:
+```{r}
+covidJulio21[!complete.cases(covidJulio21),"location"]
+```
+Omitiremos esos territorios:
+
+```{r}
+covidJulio21=covidJulio21[complete.cases(covidJulio21),]
+```
+
+Revisemos la data:
+```{r}
+summary(covidJulio21[,-c(1,2)])
+```
+La distribución de datos tiene rangos muy diferentes. Preparemos unos boxplot:
+
+- Sin modificación:
+```{r}
+boxplot(covidJulio21[,-c(1,2)],horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Tipificado:
+```{r}
+boxplot(scale(covidJulio21[,-c(1,2)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Suavizado logarítmicamente:
+```{r}
+boxplot(log(covidJulio21[,-c(1,2)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+La opción de convertir en logaritmo aleja menos las variables entre sí. Usemos eso:
+
+```{r}
+covidJulio21[,-c(1,2)]=log(covidJulio21[,-c(1,2)])
+```
+
+
+
+
+* Los nombres envialos como nombre de fila:
+
+```{r}
+row.names(covidJulio21)=covidJulio21$location
+```
+
+* Prepare los datos para el analisis cluster, use como semilla aleatoria al numero **123**.
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+library(cluster)
+
+set.seed(123)
+g.dist = daisy(covidJulio21[,c(3:6)], metric="gower")
+
+```
+
+* Obtenga sugerencia de cantidad de clusters:
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## para PAM
+
+library(factoextra)
+fviz_nbclust(covidJulio21[,c(3:6)], pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+
+fviz_nbclust(covidJulio21[,c(3:6)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+
+fviz_nbclust(covidJulio21[,c(3:6)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+Usemos la cantidad sugerida de clusters:
+
+```{r}
+set.seed(123)
+SUGERIDOS=2
+res.pam=pam(g.dist,k = SUGERIDOS,cluster.only = F)
+covidJulio21$pam=res.pam$cluster
+res.agnes <- hcut(g.dist, k = SUGERIDOS,hc_func='agnes')
+covidJulio21$agnes=res.agnes$cluster
+res.diana <- hcut(g.dist, k = SUGERIDOS,hc_func='diana')
+covidJulio21$diana=res.diana$cluster
+
+```
+
+* Evaluemos el resultado usando el coeficiente de *silueta*:
+
+* Un caso se ha clusterizado bien si tiene valor positivo
+* Un caso es dificilmente clusterizable si es muy cercano a cero
+* Un caso está mal clusterizado si es negativo.
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+```{r}
+fviz_cluster(list(data = covidJulio21[,c(3:5)], cluster = covidJulio21$pam))
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.diana)
+```
+
+
+* El Dendograma puede apoyar a entender evaluación:
+
+```{r}
+dend1=pltree(res.agnes,cex = 0.5,hang = -1,main = "Agnes")
+```
+
+```{r}
+dend2=pltree(res.diana,cex = 0.5,hang = -1,main = "Diana")
+```
+
+El *tanglegram* facilita la comparación:
+```{r, message=FALSE}
+library(dendextend)
+dendAG <- as.dendrogram (res.agnes)
+dendDI<- as.dendrogram (res.diana)
+tanglegram(dendAG, dendDI)
+```
+
+* Encontremos los casos MAL clusterizados:
+
+```{r}
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']
+
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']
+
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']
+```
+
+Juntemos todos en un Dataframe:
+
+```{r, message=FALSE}
+library("qpcR") 
+mal_covidClus=as.data.frame(qpcR:::cbind.na(poorPAM, poorAGNES,poorDIANA))
+mal_covidClus
+```
+
+* Podemos usar teoría de conjuntos para ver qué los casos mal clusterizados en todos las técnicas:
+
+```{r}
+intersect(poorPAM,poorAGNES)
+```
+
+```{r}
+# en PAM pero NO en Agnes
+setdiff(poorPAM,poorAGNES)
+```
+```{r}
+setdiff(poorAGNES,poorPAM)
+```
+
+```{r}
+intersect(poorPAM,poorDIANA)
+```
+```{r}
+intersect(poorAGNES,poorDIANA)
+```
+
+
+* **EJERCICIO**
+
+1. Vuelva a hacer este ejemplo con TRES clusters.
+
+2. Vuelva a hacer este ejemplo SIN MODIFICAR los datos originales.
+
+3. Vuelva a hacer este ejemplo TIPIFICANDO en vez de suavizar explonencialmente los datos originales.
+
+4. Haga todo lo anterior usando estas variables:
+
+* people_fully_vaccinated_per_hundred: Total number of people who received all doses prescribed by the vaccination protocol per 100 people in the total population.
+
+* gdp_per_capita: Gross domestic product at purchasing power parity (constant 2011 international dollars), most recent year available.
+
+* hospital_beds_per_thousand: Hospital beds per 1,000 people, most recent year available since 2010.

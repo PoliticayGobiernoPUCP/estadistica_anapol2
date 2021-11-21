@@ -1,0 +1,147 @@
+---
+title: "Ejemplo_Fake"
+output: html_notebook
+---
+
+# 
+
+## Presentado por: Alumno X, miembro del grupo: ABC.
+
+
+# Presentación
+
+En este post mostraré qué está afectando el desempeño en la educación cívica en el Perú, a nivel de sus provincias; según datos del 2017. Así hemos partido por proponer que la educación cívica es afectada por el nivel de desempeño escolar en habilidades cuantitativa y cualitativas , así como la relevancia estratégica de la provincia. 
+
+El concepto de desempeño cuantitativo y cualitativo está basado en el trabajo de XXXX (2019), y el concepto de relevancia estratégica de la provincia se basa en el trabajo de YYYY(2001). Para el desempeño cualitativo se ha organizado las notas promedio de los egresados de la secundaria en lectura y escritura, ; y para el desempeño cuantitativo la notas promedio de matemáticas y ciencia, ambos obtenidos del MINEDU (su portal CCCC). Para la relevancia estratégica de la provincia se ha considerado si ésta es provincia de frontera o no, si se ubica en la costa, y si ésta es capital de la región o no, información disponible en el INEI.
+
+
+En esta trabajo se ha encontrado que....
+
+
+# Situación Regional
+
+Veamos la situación regional desde el comportamiento de las variables independientes, utilizando análisis de clusters, siguiendo la técnica jerárquica.
+
+El primer paso es preparar los datos para el análisis cluster.
+
+```{r}
+rm(list = ls())
+# carga de datos
+link='https://docs.google.com/spreadsheets/d/e/2PACX-1vQLNWEPcKqxX99PZi8rzvBLM9r0pI_z8O7tFSrbbps0MNF3F66sE90F6d9wNEnmxTZXi5zBQLy51prn/pub?gid=0&single=true&output=csv'
+LosDatos=read.csv(link)
+
+# variables a selecionar
+varsIndep=c("LEC","ESC","MAT","CIE","capital_depa","es_frontera","costa")
+
+# subset para clusterizar
+paraCluster=LosDatos[,varsIndep]
+
+# cambiar texto a numero
+a_0_1=function(x){ifelse(x=='no',0,1)}
+paraCluster[,5:7]=lapply(paraCluster[,5:7],a_0_1)
+
+# cambio de nombre de fila
+row.names(paraCluster)=LosDatos$PROVINCIA
+
+```
+
+Luego obtendremos los cuatro clusters sugeridos usando la técnica jerarquica divisiva (ver anexo 1):
+
+```{r, warning=FALSE}
+library(cluster)
+
+set.seed(123)
+g.dist = daisy(paraCluster, metric="gower")
+res.diana <- hcut(g.dist, k = 4,hc_func='diana')
+paraCluster$diana=res.diana$cluster
+```
+
+Para cada cluster, es es el comportamiento de las variables numericas:
+```{r}
+aggregate(data=paraCluster[,-c(5:7)],.~diana,FUN=mean)
+```
+
+Podemos recodificar estas variables:
+
+```{r}
+paraCluster$diana=dplyr::recode(paraCluster$diana, `1` = 3, `2`=2,`3`=1,`4`=4)
+```
+
+
+
+## Anexo 1: Exploración de clusters:
+
+1. Saber si se transformará las variables numéricas:
+
+- Sin modificación:
+```{r}
+boxplot(paraCluster[,c(1,2,3)],horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Tipificado:
+```{r}
+boxplot(scale(paraCluster[,c(1,2,3)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Suavizado logarítmicamente:
+```{r}
+boxplot(log(paraCluster[,c(1,2,3)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+2. Saber cúanto clusters pedir
+
+```{r}
+library(cluster)
+
+set.seed(123)
+g.dist = daisy(paraCluster, metric="gower")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## para PAM
+set.seed(123)
+library(factoextra)
+fviz_nbclust(paraCluster, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+set.seed(123)
+fviz_nbclust(paraCluster, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+set.seed(123)
+fviz_nbclust(paraCluster, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+```{r}
+set.seed(123)
+SUGERIDOS=4
+res.pam=pam(g.dist,k = SUGERIDOS,cluster.only = F)
+res.agnes <- hcut(g.dist, k = SUGERIDOS,hc_func='agnes')
+res.diana <- hcut(g.dist, k = SUGERIDOS,hc_func='diana')
+
+```
+
+* Evaluemos el resultado usando el coeficiente de *silueta*:
+
+* Un caso se ha clusterizado bien si tiene valor positivo
+* Un caso es dificilmente clusterizable si es muy cercano a cero
+* Un caso está mal clusterizado si es negativo.
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.diana)
+```

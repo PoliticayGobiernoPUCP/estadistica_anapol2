@@ -1,0 +1,340 @@
+---
+title: "Sesión 7"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Análisis de Variables Latentes</h2>  </header></center>
+
+____
+
+Muchas veces queremos saber si las algun conjunto de  variables representa algun _concepto_, al cual se le denomina técnicamente _variable latente_. Las técnicas son variadas, pero aquí  aplicaremos análisis factorial, el exploratorio y el confirmatorio para tratar de *reducir* varias variables en otra u otras más simples. 
+
+# Análisis Factorial Exploratorio (_EFA_)
+
+## Preparación de Datos:
+
+Para esta sesión trabajaremos con la data de estos links:
+
+
+* [https://en.wikipedia.org/wiki/Democracy_Index](https://en.wikipedia.org/wiki/Democracy_Index)
+
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(htmltab)
+
+demoL=c("https://en.wikipedia.org/wiki/Democracy_Index", 
+        '//*[@id="mw-content-text"]/div[1]/table[10]')
+
+demo  = htmltab(doc = demoL[1], which  = demoL[2], encoding = "UTF-8")
+
+# limpieza
+demo[,]=lapply(demo[,], trimws,whitespace = "[\\h\\v]") # no blanks
+
+library(stringr) # nombres simples
+names(demo)=str_split(names(demo),">>",simplify = T)[,1]
+names(demo)=trimws(names(demo),whitespace = "[\\h\\v]")
+
+## Formateo
+#guion invisible
+names(demo)=gsub('\u00AD','',names(demo))
+#capitalizar
+names(demo)=str_to_title(names(demo))
+#espacios por "."
+names(demo)=names(demo)=gsub('\\s','_',names(demo))
+
+# Eliminemos columnas que no usaremos:
+demo[,c(1,2,11)]=NULL
+
+# Tipo de variables:
+
+## En demo:
+# a numerica
+demo[,-c(1,2)]=lapply(demo[,-c(1,2)],as.numeric)
+
+# a ordinal
+regimeLevels=c("Authoritarian","Hybrid regime","Flawed democracy","Full democracy")
+demo$Regime_Type=factor(demo$Regime_Type,
+                   levels=regimeLevels, 
+                   ordered = T)
+# sin perdidos:
+demo=na.omit(demo)
+```
+
+## Proceso del Analisis Factorial Exploratorio (EFA)
+
+El análisis factorial exploratorio requiere que hagamos algunas observaciones previas.
+
+1. Calculemos matriz de correlación:
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+dontselect=c("Country","Regime_Type","Overall_Score")
+select=setdiff(names(demo),dontselect) 
+theData=demo[,select] # sin los Scores ni nombre de país.
+
+
+# esta es:
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+
+2. Explorar correlaciones:
+
+* Sin evaluar significancia:
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+
+
+Si puedes ver bloques correlacionados, hay esperanza de un buen analisis factorial.
+
+
+3. Verificar si datos permiten factorizar:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(psych)
+psych::KMO(corMatrix) 
+```
+
+4. Verificar si la matriz de correlaciones es adecuada
+
+Aqui hay dos pruebas:
+
+* Hnula: La matriz de correlacion es una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix)
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
+```
+
+* Hnula: La matriz de correlacion es una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html).
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+5. Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.parallel(theData,fm = 'ML', fa = 'fa',correct = T)
+```
+
+Se sugiere 1, lo esperado, sigamos.
+
+
+6. Redimensionar a numero menor de factores
+
+* Resultado inicial:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(GPArotation)
+resfa <- fa(theData,
+            nfactors = 1,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+
+* Resultado mejorado (solo apropiado si hay más de un factor):
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+print(resfa$loadings,cutoff = 0.5)
+```
+
+Cuando logramos que cada variable se vaya a un factor, tenemos una _estructura simple_.
+
+* Resultado visual:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.diagram(resfa)
+```
+
+7. Evaluando Resultado obtenido:
+
+* ¿Qué variables aportaron mas a los factores?
+```{r}
+sort(resfa$communality)
+```
+
+* ¿Qué variables contribuyen a mas de un factor?
+
+```{r}
+sort(resfa$complexity)
+```
+
+8. Posibles valores proyectados:
+
+¿Qué nombres les darías?
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+as.data.frame(resfa$scores)%>%head()
+```
+
+El nombre sería democracia. Y debe estar correlacionado con el puntaje propuesto por TheEconomist: 
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+
+demo$efa=resfa$scores
+
+ggplot(data=demo,aes(x=Overall_Score,y=efa)) + geom_point() + theme_minimal()
+
+```
+
+Nota que los valores no son parecidos. Pero podríamos cambiar el rango:
+
+```{r}
+library(BBmisc)
+demo$efa_ok=normalize(demo$efa, 
+                       method = "range", 
+                       margin=2, # by column
+                       range = c(0, 10))
+```
+
+Esto te daría:
+```{r}
+ggplot(data=demo,aes(x=Overall_Score,y=efa_ok)) + geom_point() + theme_minimal()
+
+```
+
+El problema sería que en la nueva variable aparecen casos 0 y casos 10. Es decir la data debe ser modificada:
+
+```{r}
+# creo 5 valores con 10
+top=rep(10,5)
+# creo 5 valores con 0
+bottom=rep(0,5)
+# hago data frame con eso:
+limitCases=as.data.frame(rbind(bottom,top))
+
+# vuelvo a subsetear
+theData=demo[,select]
+names(limitCases)=names(theData)
+#anexo
+theData=rbind(theData,limitCases)
+
+# nuevamente
+resfa <- fa(theData,
+            nfactors = 1,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+
+scores=normalize(resfa$scores,
+                 method = "range", 
+                 margin=2, # by column
+                 range = c(0, 10))
+#tenemos:
+tail(scores)
+```
+
+De ahi que:
+
+```{r}
+demo$efa_ok=head(scores,-2)
+```
+
+Ahora sí:
+
+```{r}
+ggplot(data=demo,aes(x=Overall_Score,y=efa_ok)) + geom_point() + theme_minimal()
+
+```
+
+
+# ANALISIS FACTORIAL CONFIRMATORIO
+
+Si la exploración apoyaba nuestro marco teórico, podemos proponer cómo construir los indices:
+
+```{r}
+model <- ' democracia  =~ Electoral_Process_And_Pluralism + Functioning_Of_Government + Political_Participation + Political_Culture + Civil_Liberties'
+```
+Ahora vemos qué arroja el modelo:
+
+```{r}
+# normalizar las variables:
+theDataNorm=scale(theData)
+
+library(lavaan)
+cfa_fit <- cfa(model, data=theDataNorm, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Preparo los tests:
+```{r}
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+allFitCFA=as.list(fitMeasures(cfa_fit))
+```
+
+Veamos resultados:
+
+* Si cada indicador tiene una buena conexión con su latente (ver p valor):
+```{r, echo=TRUE}
+allParamCFA[allParamCFA$op=="=~",]
+
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+* El ChiSquare es NO significativo? (p_value debe ser mayor a 0.05 para que sea bueno)
+
+```{r}
+
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=TRUE}
+allFitCFA$tli # > 0.90
+```
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=TRUE}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
+```
+Ya sabemos que no hay buen augurio.
+
+```{r}
+scorescfa=normalize(lavPredict(cfa_fit),
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 10))
+
+```
+
+De ahi que:
+
+```{r}
+demo$cfa_ok=head(scorescfa,-2)
+```
+
+Veamos ambos scores calculados
+```{r}
+ggplot(data=demo,aes(x=cfa_ok,y=efa_ok)) + geom_point() + theme_minimal()
+
+```
+
+
+* **EJERCICIO**
+
+1. Añada otro concepto latente que use varias variables. Siga todos los pasos anteriores.
+
+2. Plantee una regresión Gaussiana, con una "Y" que se una variable latente (varias variables), y dos "X"s que también sean latentes (varias variables por cada "X"). Use las latentes teorizadas (sus 'scores') para la regresión. 

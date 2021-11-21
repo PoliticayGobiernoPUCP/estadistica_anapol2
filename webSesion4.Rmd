@@ -1,0 +1,366 @@
+---
+title: "Sesión 4"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Regresión No Lineal - Modelo Binomial Logístico</h2>  </header></center>
+
+
+____
+
+
+
+La data de este material está basada en el trabajo de [Cowles y Davis](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.2044-8309.1987.tb00769.x). Los datos y la metadata están disponibles [aqui](http://vincentarelbundock.github.io/Rdatasets/datasets.html).
+
+Por facilidad puedes verlos aqui en GoogleDocs:
+
+<iframe width="800" height="600" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTnBAuw8v3PgGMivOBI9tFfGjVrZsVnteUF2y44HjZneYoajlrb9k61kWN300Q-n1q04iy8_nsB68n_/pubhtml?"></iframe>
+
+
+Esta investigación desea saber si __el ofrecerse como voluntario está relaciondo con el sexo de la persona, su nivel de neuroticismo y su nivel de extraversión__.
+
+# Parte 1. Preparación de datos
+
+## 1. Datos a utilizar
+
+* Leemos los datos desde Google.
+
+
+```{r, echo=TRUE}
+link="https://docs.google.com/spreadsheets/d/e/2PACX-1vTnBAuw8v3PgGMivOBI9tFfGjVrZsVnteUF2y44HjZneYoajlrb9k61kWN300Q-n1q04iy8_nsB68n_/pub?gid=1431542138&single=true&output=csv"
+vol=read.csv(link, stringsAsFactors = F)
+```
+
+* Verificamos qué tipo de datos tenemos:
+
+```{r, echo=TRUE}
+str(vol)
+```
+
+## 2. Pre procesamiento
+
+Hay dos columnas que deben ser convertidas a categóricas.
+
+```{r, echo=TRUE}
+vol[,c(3,4)]=lapply(vol[,c(3,4)],as.factor)
+```
+
+## 3. Exploración
+
+* Una vez formateada, exploremos la data estadísticamente
+
+```{r, echo=TRUE}
+summary(vol)
+```
+
+**NO OLVIDAR**: 
+* Las categóricas siempre se almacenan internamente como números, y éstos se asignarán por defecto en orden alfabético. De ahi que el primer nivel de cada categórica se conoce como la **categoría de referencia**.
+
+* Hay funciones que requieren usar los factores como números, en ese sentido, asegúrate que el orden de las categóricas sea el correcto: que el evento de interés sea el mayor valor (en esta caso voluntario):
+
+```{r}
+# original
+table(vol$volunteer)
+```
+
+```{r}
+# como numero
+table(as.numeric(vol$volunteer))
+```
+
+
+# Parte 2. Análisis bivariado 
+
+## 1. Usando la tabla de contingencia
+
+Queremos saber si ser mujer está relacionado con ser voluntario en proyectos de investigación. Al ser ambas categóricas, y ser la hipótesis asimétrica o direccional, preparemos una tabla de contingencia que muestre ello:
+
+```{r, echo=TRUE}
+dep=vol$volunteer # a la fila
+ind=vol$sex # a la columna
+
+volsexTable=table(dep,ind,dnn = c('volunteer','sex'))
+
+### suma por columna
+addmargins(volsexTable,margin = 1)
+```
+
+Saber si ser mujer está relacionado con ser voluntario implica saber dos cosas más:
+
+* Si elijo una mujer al azar, qué probabilidad se tiene  que ésta sea voluntaria. 
+* Cómo comparo el "voluntarismo" de la mujer con la del hombre.
+
+## 2. Probabilidades y ODDS
+
+#### A. Caso de la mujer:
+
+* La **probabilidad** que una mujer elegida al azar sea voluntaria es la división del ser voluntaria entre el total de mujeres:
+
+```{r, echo=TRUE}
+probMV=volsexTable[2,1]/sum(volsexTable[,1])
+probMV
+```
+
+La probabilidad es un valor que va de 0 a 1. Recuperemos lo valores de la tabla de contingencia:
+
+```{r, echo=TRUE}
+library(MASS)
+fractions(probMV)
+```
+
+
+* Representemos el **odds** que sea voluntaria: la división entre ser o no ser voluntaria:
+```{r, echo=TRUE}
+volsexTable[2,1]/volsexTable[1,1]
+```
+
+Que se origina de:
+
+```{r, echo=TRUE}
+fractions(volsexTable[2,1]/volsexTable[1,1])
+```
+
+El _odds_ suele representarse además como la razón entre dos probabilidades: la probabilidad que ocurra un evento dividido por la probabilidad que NO ocurra ese evento:
+
+```{r, echo=TRUE}
+OddsMV=probMV/(1-probMV)
+OddsMV
+```
+
+#### B. Caso del hombre:
+
+* Probabilidad que un hombre elegido al azar sea voluntario:
+
+```{r, echo=TRUE}
+probHV=volsexTable[2,2]/sum(volsexTable[,2])
+probHV
+```
+
+O...
+
+```{r, echo=TRUE}
+fractions(probHV)
+```
+
+* El odds que el hombre sea voluntario:
+
+```{r, echo=TRUE}
+OddsHV=probHV/(1-probHV)
+OddsHV
+```
+
+O...
+
+```{r, echo=TRUE}
+fractions(OddsHV)
+```
+
+#### C. Comparando Mujer y Hombre:
+
+Hasta aquí ya sabemos cuál odds ha salido mayor. Eso es información clara.
+Para precisar esa información, podemos dividir los odds, lo que nos da el **odds ratio**, que en este caso nos dirá _qué diferencia produce el sexo en el voluntariado_: 
+
+```{r, echo=TRUE}
+#Mujer/Hombre
+(OR_MH=OddsMV/OddsHV)
+```
+
+Con ese valor, ya sabemos que el odds de ser mujer es 0.28 por encima del odds del hombre. El odds ratio (OR) puede ir de 0 a infinito. Un OR de 1 implica que no hay diferencias. 
+
+Osea, el inverso del OR anterior, para este caso, es el "esfuerzo" que requiere hombre para llegar al nivel de la mujer:
+
+```{r}
+OddsHV*OR_MH
+```
+
+Si quieres verlo como fracción:
+
+```{r, echo=TRUE}
+fractions(OddsMV/OddsHV)
+```
+
+Esto informa que la cantidad de mujeres que encontrarias de voluntarias ante una cantidad de hombres voluntarios.
+
+
+#### D. Porcentajes y gráficas
+
+Veamos la tabla de contingencia con los porcentajes por columna:
+
+```{r, echo=TRUE}
+prop.table(volsexTable,margin = 2)
+```
+
+Grafiquemoslo:
+
+```{r, echo=TRUE}
+mosaicplot( t(volsexTable),col = c("orange", "green"))
+```
+
+A pesar de la diferencia, ¿será ésta significativa?
+
+# Parte 3. Regresión Logística 
+
+
+
+La regresión logística modela el comportamiento de la probabilidad del evento de interés:
+
+$${log}(\frac{{p}}{{1 – p}}) = \beta_0 + \beta_ix_i$$
+
+La parte izquierda representa esa probabilidad pero en términos del odds. La parte derecha de la ecuación es igual a la ecuación de una recta, pero estamos modelando al logaritmo del odds. Veamos cómo calcularla en R:
+
+```{r, echo=TRUE}
+### semilla
+
+set.seed(2019)
+
+### primer modelo:
+#data como subset
+vars1=vol[,c("volunteer","sex")]
+
+#regresion
+rlog1=glm(volunteer~., data=vars1,family = binomial)
+
+#resultado clásico:
+summary(rlog1)
+```
+
+Veamos ahora el resultado con mejor formato:
+
+```{r, message=FALSE, echo=TRUE, results='asis'}
+# recuerda poner: ```{r, results='asis'}
+library(stargazer)
+#resultado
+stargazer(rlog1,type="html")
+```
+
+
+Los coeficientes, como se vió en la ecuación anterior, están modelando al logaritmo del odds de ser voluntario.
+
+El resultado anterior ha usado a mujer como _referencia_: nos informa cuánto afecta al log odds de ser voluntario el ser hombre en comparación con ser mujer (la referencia). Ahora sabes que ser hombre disminuye la probabilidad de ser voluntario. Ajustemos la referencia para ver el efecto de mujer:
+
+```{r, echo=TRUE}
+# nueva referencia
+#vol$sex=relevel(vol$sex,ref = "male")
+
+# rehago subset
+vars1=vol[,c("volunteer","sex")]
+
+rlog1=glm(volunteer~., data=vars1,family = binomial)
+```
+
+
+Los resultados van a continuación:
+
+```{r, message=FALSE, echo=TRUE, results='asis'}
+#resultado
+stargazer(rlog1,type="html")
+```
+
+Vemos que sexo tiene efecto, y el símbolo del coeficiente propone que el efecto es positivo. Ese valor, como modela a un logaritmo, no es fácil de interpretar. Pero, si le aplicas exponencial, hallarás un valor conocido:
+
+```{r, echo=TRUE}
+sexF=coef(rlog1)["sexfemale"]
+exp(sexF)
+```
+
+Ahora sabemos que el efecto de sexo es significativo gracias a la regresión logística, algo que no sabíamos con las tablas de contingencia.
+
+Además, con la regresión logística podemos tener predictores numéricos, lo que escapa de la utilidad de las tablas de contingencia:
+
+```{r, echo=TRUE}
+vars2=vol[,c("volunteer","sex","neuroticism")]
+rlog2=glm(volunteer~., data=vars2,family = binomial)
+```
+
+```{r, echo=TRUE}
+vars3=vol[,c("volunteer","sex","neuroticism","extraversion")]
+rlog3=glm(volunteer~., data=vars3,family = binomial)
+```
+
+Veamos todos:
+
+```{r, results='asis', echo=TRUE, message=FALSE}
+library(stargazer)
+
+stargazer(rlog1,rlog2,rlog3,type = "html",no.space = F,digits =3,digit.separator="")
+```
+
+<br>
+<br>
+
+## 1. Comparando modelos
+
+Las tres regresiones presentan valores diferentes del criterio de información de Akaike (AIC), se considera que un modelo es mejor si tiene un AIC menor a los demás. Esto sugiere qu el tercer modelo es el mejor y el segundo el peor. Como los valores del AIC están muy cercanos confirmemos usando el test de razón de verosimilitud (likelihood ratio test -LRT):
+
+```{r, echo=TRUE, message=FALSE}
+library(lmtest)
+
+lrtest(rlog1,rlog2, rlog3)
+```
+
+O alternativamente:
+
+```{r, results='asis'}
+library(pander)
+pander(lrtest(rlog1,rlog2, rlog3),caption = "LRT para los tres modelos")
+```
+
+Como vemos, pasar del modelo 1 al modelo 2 es no significativo (probabilidad es mayor a 0.05), por lo que no se rechaza la hipotesis nula de igualdad de modelos. Pero sí es significativo pasar del modelo 2 al modelo 3.
+
+
+
+## 2.  Efectos Marginales
+
+Recuerdese que aún NO sabemos cuando afecta cada variable la probabilidad de ser voluntario en promedio. Para ello pedimos efectos marginales.
+
+
+```{r  model1_interpre_margins}
+# interpracion usando marginal effects:
+library(margins)
+# 
+(model = margins(rlog3))
+
+```
+
+Esto sí indica cuanto afecta cada variable la probabilidad de ser voluntario.
+
+Para graficar veamos un resumen:
+```{r}
+(margins=summary(model))
+```
+
+Luego, aqui vemos efecto:
+
+```{r}
+library(ggplot2)
+base= ggplot(margins,aes(x=factor, y=AME)) + geom_point()
+base
+
+```
+
+Aqui el efecto y su intervalo de confianza:
+```{r}
+base +  geom_errorbar(aes(ymin=lower, ymax=upper))
+```
+
+
+
+
+_____
+<br></br>
+
+[al INICIO](#beginning)

@@ -1,0 +1,215 @@
+---
+title: "Sesion 2"
+output:
+  html_document:
+    df_print: paged
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Regresión Lineal Multivariada (II)</h2>  </header></center>
+
+_____
+
+<a id='rlin'></a>
+
+
+## Regresión Lineal
+
+La regresión es una técnica donde hay que definir una variable dependiente y una o más independientes. Las independientes pueden tener rol predictor, dependiendo del diseño de investigación, pero cumple siempre un rol explicativo; así, la regresión sí quiere informar cuánto una variable (_independiente_) puede explicar la variación de otra (_dependiente_), de ahí que es una técnica para probar hipótesis direccionales o asimétricas (las correlaciones tiene hipótesis no direccionales o simétricas).
+
+La regresión lineal busca proponer un modelo, es decir una ecuación, que recoja como una variable explicaría a otra. La regresión lineal es también conocida como la **Regresión Gaussiana**, la cual es aplicable sólo cuando la variable dependiente (la **Y**) es _numérica_, _contínua_, y _no acotada_.
+
+Veamos los datos del artículo  [¿Pavimentando Con Votos
+](http://www.scielo.org.co/scielo.php?script=sci_arttext&pid=S0121-56122008000200002):
+
+
+<iframe width="1000" height="800" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSRpCC8gKIxMxpK0wjgLcl-GQWdw6sAeB16Sixkq6kZXeTfMS8_n70twbEbQ2tMcGp8tm-6x8qf8ieo/pubhtml?"></iframe>
+
+
+Los datos tienen estas características una vez cargados en R:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+#carga de data
+linkToData='https://docs.google.com/spreadsheets/d/e/2PACX-1vSRpCC8gKIxMxpK0wjgLcl-GQWdw6sAeB16Sixkq6kZXeTfMS8_n70twbEbQ2tMcGp8tm-6x8qf8ieo/pub?gid=234740779&single=true&output=csv'
+pavi=read.csv(linkToData)
+str(pavi)
+```
+Nótese que debemos tener claro cuáles son categóricas:
+```{r}
+seleccion=c("consejocomunal","ejecucion","uribista","priorizado")
+#pavi[,seleccion]=lapply(pavi[,seleccion],as.factor)
+pavi[,seleccion]=rio::factorize(pavi[,seleccion])
+```
+
+Veamos una hipotesis: '_el Beneficio recibido_' en un municipio ha sido afectado por  '_el porcentaje de votos recibidos por los candidatos de la oposición a Uribe a la camara de representantes_', controlando por '_tamaño de población_', la cual se representa en R así:
+
+```{r}
+modelo1=formula(apropiaciondolar~pctopo+poblacioncienmil)
+```
+ 
+Veamos el resultado:
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, results='asis'}
+library(stargazer)
+reg1=lm(modelo1,data=pavi)
+stargazer(reg1,type = "html",intercept.bottom = FALSE)
+```
+
+<br></br>
+
+Al probar esta hipótesis vemos, **primero** que _pctopo_ tiene _efecto significativo_ al **0.1** (indicado por el  asterisco); **segundo**, que ese efecto es _inverso_, pues el coeficiente calculado es negativo; y **tercero** que la _magnitud_ de ese efecto es `r round(reg1$coefficients[2],3)`, lo que indica cuanto varía _apropiaciondolar_ en promedio cuando _pctopo_ se incremente en una unidad, controlando por _poblacioncienmil_. 
+
+Esto es información suficiente para representar esa relación con una ecuación:
+
+$$  apropiaciondolar = `r reg1$coefficients[1]` + `r reg1$coefficients[2]` \cdot pctopo + `r reg1$coefficients[3]`\cdot poblacioncienmil + \epsilon$$
+
+Justamente el _R cuadrado ajustado_ (`r summary(reg1)$r.squared`) nos brinda un porcentaje (multiplicalo por 100) que da una pista de nuestra cercanía a una situación perfecta (cuando vale **1**).
+
+¿Y sí queremos ver el efecto de la promesa de ejecución (_ejecucion_)? Nuestra hipotesis se plantearía en R así:
+
+```{r}
+modelo2=formula(apropiaciondolar~pctopo+consejocomunal+poblacioncienmil)
+```
+
+Esta nueva hipótesis desea evaluar si la visita de Uribe a un Consejo Comunal influye en la asignación de presupuesto. Veamos qué sale:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg2=lm(modelo2,data=pavi)
+stargazer(reg2,type = "html",intercept.bottom = FALSE)
+```
+
+
+Al probar esta hipótesis vemos, que _pctopo_ tiene _efecto significativo_ al **0.1** (indicado por el  asterisco); ese efecto es _inverso_, pues el coeficiente calculado es negativo; y  la _magnitud_ de ese efecto es `r round(reg2$coefficients[2],3)`, lo que indica cuanto varía _apropiaciondolar_ en promedio cuando _pctopo_ se incremente en una unidad, controlando por _poblacioncienmil_. Así mismo, vemos que _consejocomunal_ tiene _efecto significativo_ al **0.001** (indicado por los  asteriscos); ese efecto es _directo_, pues el coeficiente calculado es positivo; y  la _magnitud_ de ese efecto es `r round(reg2$coefficients[3],3)`, lo que indica cuanto varía _apropiaciondolar_ en promedio cuando _consejocomunal_ es **1** y no **0** (también controlando por _poblacioncienmil_). 
+
+Nótese la lectura del efecto cuando la variable independiente es categórica (o _factor_). Primero, nota que _R_ indica el valor _1_ con el nombre de la variable: eso indica que el valor **0** (cuando el consejo comunal de ese municipio NO fue visitado) es la _categoría de referencia_; es decir, el coeficiente nos indica cuanto se modifica el valor promedio de la dependiente cuando se pasa de 0 a 1. Si la variable independiente es politómica (no ordinal), aparecerá cada categoría menos la de referencia, y el efecto siempre se debe interpretar como el efecto de la variable mostrada versus la de referencia.
+
+Esto es información suficiente para representar esa relación con una ecuación:
+
+$$  apropiaciondolar = `r reg2$coefficients[1]` + `r reg2$coefficients[2]` \cdot pctopo + `r reg2$coefficients[3]` \cdot consejocomunal + `r reg2$coefficients[4]`\cdot poblacioncienmil + \epsilon$$
+
+
+En ambos modelos, el  $\epsilon$ no tiene coeficiente, representamos su variación usando el error típico de los residuos o _residual standard error_ (RSE). Nótese que éste ha variado de un modelo ha otro, ahora tenemos un RSE menor. Aquí vale la pena preguntarse si esta disminución del error es significativa, obteniendo:
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+tanova=anova(reg1,reg2)
+stargazer(tanova,type = 'html',summary = F,title = "Table de Análisis de Varianza")
+```
+
+<br></br>
+
+La comparación de modelos usando la tabla de análisis de varianza  (anova) propone como hipótesis nula que los modelos no difieren (no se ha reducido el error al pasar de un modelo a otro). Como la comparación es _significativa_ (vea el **Pr(>F)**), rechazamos igualdad de modelos: el modelo 2 sí reduce el error al incluir una variable más.
+
+
+_____
+
+<a id='diag'></a>
+
+## Diagnósticos de la Regresión
+
+
+Para que se considere que el modelo de regresión elegido es el adecuado, debemos verificar algunos requisitos a posteriori:
+
+
+**1. Linealidad**:
+
+Se asume relación lineal entre Y y Xs:
+
+```{r}
+# linea roja debe tender a horizontal
+plot(reg2, 1)
+```
+
+**2. Homocedasticidad**
+ 
+
+Se asume que el error del modelo de regresión no afecta la varianza o dispersión de la estimación ($\hat{MATH}$):
+
+```{r}
+# linea roja debe tender a horizontal
+plot(reg2, 3)
+```
+
+También podemos utilizar el test de Breusch-Pagan:
+
+```{r}
+library(lmtest)
+# null: modelo homocedastico
+bptest(reg2)
+```
+
+La probabilidad de homocedasticidad es muy baja (p-value  menor a 0.05), de ahi que se rechaza que el modelo muestre homocedasticidad. 
+
+
+**3. Normalidad de los residuos**
+
+Los residuos, la diferencia entre _apropiaciondolar_ y $\hat{apropiaciondolar}$, deben distribuirse de manera normal:
+
+```{r}
+# puntos cerca a la diagonal
+plot(reg2, 2)
+```
+
+Podemos aplicar el test de Shapiro a los residuos:
+
+```{r}
+shapiro.test(reg2$residuals)
+```
+
+
+**4. No multicolinelidad**
+
+
+Si los predictores tienen una correlación muy alta entre sí, hay multicolinealidad, lo cual no es deseable:
+
+```{r}
+library(DescTools)
+VIF(reg2) # > 5 es problematico
+```
+
+**5. Valores influyentes**:
+
+Hay casos particulares, que tienen la capacidad de trastocar lo que el modelo representa. A veces detectándolos y suprimiéndolos, podemos ver un mejor modelo:
+
+```{r}
+plot(reg2, 5)
+```
+
+Asi podemos recuperar los casos influyentes:
+```{r}
+checkReg2=as.data.frame(influence.measures(reg2)$is.inf)
+head(checkReg2)
+```
+
+Normalmente le prestamos atencion al indice de Cook y a los valores predecidos (los _hat_ values):
+
+```{r}
+checkReg2[checkReg2$cook.d & checkReg2$hat,]
+
+```
+
+_____
+
+<br></br>
+
+[al INICIO](#beginning)
+
+

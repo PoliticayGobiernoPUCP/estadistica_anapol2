@@ -58,25 +58,26 @@ Instale y use la librería **stringr**:
 
 ```{r, eval=FALSE}
 library(stringr)
+urban[1,2]
 ```
 
 Veamos diferentes casos:
 
 ```{r, eval=FALSE}
 # me trae cada numero
-str_extract_all(string = '25.3%,0% y 23.5% 13 34 hola',pattern="\\d")
+str_extract_all(string = urban[1,2],pattern="\\d")
 ```
 
 ```{r, eval=FALSE}
 # me trae numeros adyacentes:
-str_extract_all('25.3%,0% y 23.5% 13 34 hola',
+str_extract_all(urban[1,2],
                 "\\d+") # + es al menos 1 / * es 0 o más
 ```
 
 
 ```{r, eval=FALSE}
 # numero entero, seguido opcionalmente de punto, mas numero de una o mas cifras.
-str_extract_all('25.3%,0% y 23.5% 13 34 hola',
+str_extract_all(urban[1,2],
                 "\\d+\\.*\\d*")
 
 ```
@@ -84,7 +85,7 @@ str_extract_all('25.3%,0% y 23.5% 13 34 hola',
 
 ```{r, eval=FALSE}
 # numero entero, seguido opcionalmente de punto, mas numero de una o mas cifras, seguido de %.
-str_extract_all('25.3%,0% y 23.5% 13 34 hola',
+str_extract_all(urban[1,2],
                 "\\d+\\.*\\d*\\%")
 ```
 
@@ -95,7 +96,7 @@ str_extract_all('25.3%,0% y 23.5% 13 34 hola',
 #  que antes de (?=\\%) haya (\\d+\\.*\\d*)
 #  pero solo trae (\\d+\\.*\\d*)
     
-str_extract_all('25.3%,0% y 23.5% 13 34 hola',
+str_extract_all(urban[1,2],
                 "(\\d+\\.*\\d*)(?=\\%)")
 ```
 

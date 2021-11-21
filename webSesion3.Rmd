@@ -1,0 +1,192 @@
+---
+title: "Sesión 3"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Regresión No Lineal - Modelo Poisson</h2>  </header></center>
+
+_____
+
+<a id='rlin'></a>
+
+
+## Regresión Poisson
+
+Usamos la regresión Poisson con una variable dependiente no negativa y entera que represente *conteos* en espacio o tiempo. En la siguiente data sobre los hogares filipinos identifica cuál es la candidata a este tipo de regresión:
+
+<iframe iframe width="600" height="800"
+src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQWnEXsNsWcIKppEJkTDSynBQDs0v0GY4cLQx6jrhTbW1zQmaposrT-gMM6zwYXeRh9F_20utyFhnG3/pubhtml?gid=501774585;headers=true"></iframe>
+
+Los datos tienen estas características una vez cargados en R:
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE}
+#carga de data
+linkToData='https://docs.google.com/spreadsheets/d/e/2PACX-1vQWnEXsNsWcIKppEJkTDSynBQDs0v0GY4cLQx6jrhTbW1zQmaposrT-gMM6zwYXeRh9F_20utyFhnG3/pub?gid=501774585&single=true&output=csv'
+household=read.csv(linkToData)
+str(household)
+```
+Nótese que debemos tener claro cuáles son categóricas:
+```{r}
+seleccion=c("roofqua")
+#household[,seleccion]=lapply(household[,seleccion],as.factor)
+household[,seleccion]=rio::factorize(household[,seleccion])
+```
+
+La regresión Poisson tiene sus supuestos:
+
+1. __Varable Respuesta__ Es un conteo por unidad de tiempo o espacio, que puede ser descrita por la distribución  Poisson.
+2. __Independencia__ Las observaciones (filas) no deben tener relación entre sí.
+3. __Media=Varianza__ Por definición, la media de una variable que se distribuye como Poisson debe ser  igual a su varianza.
+4. __Linealidad__ El logaritmo de la media de los datos, log($\lambda$), debe ser una función lineal de los datos.
+
+La variable de interés, que será modelada como Poisson, es sesgada a la derecha, como se nota en la gráfica que sigue:
+
+```{r, nhouse, fig.align="center",out.width="60%", fig.cap='Distribución del tamaño de las familias.',echo=FALSE, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+ggplot(household, aes(total)) + theme_classic() +
+  geom_histogram(binwidth=0.25,
+                 color = NA, 
+                 fill = "black") + 
+  xlab("Número de miembros / familia") +
+  ylab("Conteo de miembros")
+```
+
+
+Veamos una hipotesis: Según '_la edad del jefe o jefa de familia_' en las Filipinas se afectará  '_la cantidad de integrantes_' de ésta, la cual se representa en R así:
+
+```{r}
+modelo1=formula(total~age)
+```
+ 
+Veamos el resultado:
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, results='asis'}
+library(stargazer)
+reg1 = glm(modelo1, family = poisson, data = household)
+#summary(reg1)
+stargazer(reg1,type = "html",intercept.bottom = FALSE,style="all2")
+```
+
+<br></br>
+
+
+Al probar esta hipótesis vemos, **primero** que _age_ tiene _efecto significativo_ al **0.001**; **segundo**, que ese efecto es _inverso_, pues el coeficiente calculado es negativo; y **tercero** que la _magnitud_ de ese efecto es `r round(reg1$coefficients[2],7)`.  Para interpretar este valor, recuérdese que debe exponenciar _age_ y dividir 1 entre ese valor:
+
+```{r}
+edad=coef(reg1)[['age']]
+E_Edad=exp(edad)
+(CambioEdad=100*(1-1/E_Edad))
+```
+Eso quiere decir que se espera que los miembros promedio del hogar aumenten en un 0.47% cuando la edad del jefe de familia se reduce (signo _negativo_) en un año. Nótese que esta regresión propone un efecto multiplicativo sobre el valor medio de la respuesta (la regresión Gaussiana propone un efecto aditivo). Como este valor es significativo, también podemos ver su intervalo de confianza:
+
+```{r}
+cbind(1-1/exp(coef(reg1)),1-1/exp(confint(reg1)))
+```
+
+
+¿Y sí queremos ver el efecto de la situación económica (_roofqua_)? Nuestra hipotesis se plantearía en R así:
+
+```{r}
+modelo2=formula(total~age+roofqua)
+```
+
+Veamos qué sale:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg2 = glm(modelo2, family = poisson, data = household)
+#summary(reg2)
+stargazer(reg2,type = "html",intercept.bottom = FALSE,style="all2")
+
+```
+
+
+Al probar esta hipótesis vemos que _roofqua_ no tiene _efecto significativo_. Nótese que ha aparecido una de las categorías del factor, y la que NO aparece es la _categoría de referencia_.
+
+
+Es obvio a esta altura que el modelo con un solo predictor es mejor, pero aquí **NO HAY** el error típico de los residuos (RSE), por lo que usaremos las "_deviances_":
+
+<br></br>
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+tanova=anova(reg1,reg2,test = "Chisq")
+stargazer(tanova,type = 'html',summary = F,title = "Table de Análisis de Varianza")
+```
+
+<br></br>
+
+La comparación de modelos usando la tabla de análisis de varianza  (anova) propone como hipótesis nula que los modelos no difieren (no se ha reducido el error al pasar de un modelo a otro). Como la comparación es _NO significativa_ (vea el **Pr(>F)**), no rechazamos igualdad de modelos.
+
+Uno de los supuestos era que la **media** y la **varianza** sean iguales. Si la varianza es mayor que la media, hablamos de sobredispersión (subdispersion si es menor que la media). Veamos:
+
+```{r}
+VarY=household$total
+list(media=mean(VarY),varianza=var(VarY),razon=var(VarY)/mean(VarY))
+```
+A veces la razon podría ser mínima, para lo cual podemos poner a prueba la _hipotesis de equidispersion_:
+```{r, message=FALSE}
+library(AER)
+dispersiontest(reg1)$ p.value
+```
+Esa es la probabilidad que haya equidispersión. Así, como la varianza supera a la media, no se sostiene el supuesto pues hay sobredispersion. Veamos de solucionarlo con la _quaipoisson_:
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg1quasi = glm(modelo1, family = quasipoisson, data = household)
+#summary(reg1quasi)
+stargazer(reg1quasi,type = "html",intercept.bottom = FALSE,style="all2")
+
+```
+Nótese que han sucedido cosas interesantes:
+
+* Los coeficientes son los mismos tanto para _reg1_ como para _reg1quasi_:
+
+```{r, message=FALSE}
+library(arm)
+cbind(reg1=coef(reg1),reg1q=coef(reg1quasi))
+
+```
+* Pero no los errores típicos no:
+```{r}
+cbind(reg1=se.coef(reg1),reg1q=se.coef(reg1quasi))
+```
+* Nota además que el mensaje "Dispersion parameter..." muestra con la quasipoisson un valor diferente a 1.
+
+Vemos que la regresión quasipoisson lidia mejor con la sobredispersión, cuyo efecto concreto fue sobre los errores típicos. De ahí que un mejor intervalo de confianza para _age_ será: 
+
+```{r}
+cbind(1-1/exp(coef(reg1quasi)),1-1/exp(confint(reg1quasi)))
+```
+Finalmente, una alternativa ante la sobredispersión es usar la _regresión binomial negativa_. 
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
+reg1nb=glm.nb(modelo1,data=household)
+#summary(reg1nb)
+stargazer(reg1nb,type = "html",intercept.bottom = FALSE,style="all2")
+```
+Nótese que los resultados son similares a la quasipoisson. Por lo general, la binomial negativa es más utilizada que la quasipoisson, pero la binomial negativa no es apropiada para la subdispersión, mientras que la quasipoisson sí se usa para ese caso.
+
+
+_____
+
+<br></br>
+
+[al INICIO](#beginning)
+
+

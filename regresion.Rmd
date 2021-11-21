@@ -14,11 +14,11 @@
 
 ____
 
-<center> <header><h2>Introducción a la Regresión Lineal Multivariada</h2>  </header></center>
+<center> <header><h2>Regresión Lineal Multivariada</h2>  </header></center>
 ____
 
 
-En esta sesión deseo que entiendas por qué es necesario ir más allá de la correlación (_Pearson_, _Spearman_, etc.) o las diferencias de valores medios (_t test_, _kruska wallis_, etc.). Esta necesidad de ir más allá tiene una técnica de apoyo conocida como la regresión. 
+En esta sesión deseo que entiendas por qué es necesario ir más allá de la correlación (_Pearson_, _Spearman_, etc.) o las diferencias de valores centrales (_t test_, _kruska wallis_, etc.). Esta necesidad de ir más allá trae una técnica conocida como la regresión. 
 
 La sesión va en tres partes:
 
@@ -43,7 +43,7 @@ hsb=import(linkToData)
 
 ```
 
-Revisando tipo de datos:
+Antes de correr cualquier análisis estadístico, debes revisar como el tipo de datos que tu archivo trae y :
 
 ```{r}
 str(hsb)
@@ -484,7 +484,7 @@ Tarea para la casa:
 
  * Vaya al http://ineidw.inei.gob.pe/ineidw/ y pruebe esta hipotesis:
  
-La Tasa de Mortalidad Infantil a nivel provincial está influenciada por Tasa de Empleo Vulnerable, el Porcentaje de personas de 3 años a más cuya lengua materna es quechua, aymara, ashaninka u otra lengua nativa, por el Porcentaje de viviendas cuyo régimen de tenencia de vivienda es propia, y si la provincia aloja a la capital de la region.
+La Tasa de Mortalidad Infantil a nivel provincial está influenciada por Tasa de Empleo Vulnerable, el Porcentaje de personas de 3 años a más cuya lengua materna es quechua, aymara, ashaninka u otra lengua nativa, por el Porcentaje de viviendas cuyo régimen de tenencia de vivienda es propia.
 
 Haga un reporte exhaustivo.
 _____

@@ -1,0 +1,86 @@
+
+carga de data:
+
+```{r}
+# link a web
+l="https://www.cia.gov/library/publications/resources/the-world-factbook/fields/274.html"
+# link a path
+p='//*[@id="fieldListing"]'
+# traer tabla
+library(htmltab)
+co=htmltab(l,p)
+names(co)[2]="co2"
+```
+
+separar columnas
+```{r}
+# antes de parentesis
+co$valor=str_split(string = co$co2,
+          pattern = '\\(',
+          simplify = T)[,1]
+# despues de parentesis
+co$year=str_split(string = co$co2,
+          pattern = '\\(',
+          simplify = T)[,2]
+```
+
+```{r}
+#limpio año
+co$year=str_split(string = co$year,
+          pattern = ' ',
+          simplify = T)[,1]
+```
+
+```{r}
+#limpio valor
+## primero unidad
+co$unidad=str_split(string = co$valor,
+          pattern = ' ',
+          simplify = T)[,2]
+# luego valor
+co$valor=str_split(string = co$valor,
+          pattern = ' ',
+          simplify = T)[,1]
+
+```
+
+reemplazar "unidades"
+
+```{r}
+co$unidad=gsub("million",6,co$unidad)
+co$unidad=gsub("billion",9,co$unidad)
+co$unidad=gsub("Mt",0,co$unidad)
+```
+
+reemplazar "valores"
+```{r}
+
+# cambio de tipo de dato
+library(readr)
+
+co$valor=parse_number(co$valor)
+
+co$unidad=as.numeric(co$unidad)
+```
+
+
+```{r}
+#conversion
+co$valor=co$valor*(10**co$unidad)
+
+#me kedo con lo necesario
+
+co=co[,c(1,3)]
+
+
+```
+
+
+
+
+
+
+
+
+
+

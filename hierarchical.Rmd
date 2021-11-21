@@ -76,7 +76,7 @@ row.names(demo)=demo$Country
 
 ```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # alternativa a complete.cases:
-demo=na.omit(demo)
+#demo=na.omit(demo)
 ```
 
 Ahora podemos continuar:
@@ -136,7 +136,7 @@ El **dendograma** nos muestra el proceso de conglomeración:
 
 ```{r, fig.width=20, fig.height=20 , warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 # Visualize
-fviz_dend(res.agnes,k=4, cex = 0.7, horiz = T)
+fviz_dend(res.agnes, cex = 0.7, horiz = T)
 ```
 
 El eje 'Height' nos muestra el "costo" de conglomerar.

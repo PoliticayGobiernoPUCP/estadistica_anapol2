@@ -1,0 +1,376 @@
+---
+title: "Sesión 5"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Análisis de Conglomerados</h2>  </header></center>
+____
+
+# Estrategia de Partición
+
+Como su nombre lo indica, la estrategia de partición busca partir los casos en grupos. El algoritmo básico establece puntos que deben atraer a los casos, tal que estos se separen. Claro está, que estos puntos atractores van moviendose conforme los grupos se van formando, hasta que al final se ha partido todos los casos. 
+
+Hay diversos algoritmos que buscan una implementación de estos principios básicos. El más conocido es el de **K-medias**, pero para ciencias sociales tiene la desventaja que requiere que todas las variables sean numéricas, no siendo muy eficiente ante categorías. Es decir, como mencionamos en la intro, la técnica de *k-means* no usa distancias entre categóricas, sólo entre numéricas ([la distancia _Euclideana_](https://en.wikipedia.org/wiki/Euclidean_distance)).
+
+La alternativa a las necesidades en ciencias sociales es la técnica de **k-medoides**. Esta técnica trabaja muy bien con las distancias euclideas, pero también con otras distancias como la [**Mahattan**](https://en.wikipedia.org/wiki/Taxicab_geometry) (revisar este [debate](https://datascience.stackexchange.com/questions/20075/when-would-one-use-manhattan-distance-as-opposite-to-euclidean-distance)). En particular, usaremos la [distancia Gower](https://www.linkedin.com/pulse/simplifying-gower-coefficient-vineet-tanna) útil para todos tipo de escalas.
+
+
+
+Traigamos nuevamente los datos desempeños estudiantil:
+
+```{r}
+library(rio)
+linkToData='https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/hsb_ok.xlsx'
+hsb=import(linkToData)
+
+# veamos que tenemos:
+names(hsb)
+```
+Creemos una sub-data de 100 casos con las notas de desempeño en lectura, matemáticas y cívica:
+```{r}
+dataClus=hsb[,c("RDG","MATH","CIV")]
+dataClus=dataClus[sample(nrow(dataClus), 100), ]
+```
+
+
+
+Como pasos previo, solo trabajemos con data sin valores perdidos:
+
+```{r}
+# alternativa a complete.cases:
+dataClus=na.omit(dataClus)
+```
+
+Verifiquemos tipo de datos:
+
+```{r}
+str(dataClus)
+```
+
+Ahora podemos continuar:
+
+
+### 1. Calcular distancias entre los casos (filas):
+
+```{r}
+
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+### 2. Proponer cantidad de clusters:
+
+Pidamos cuatro grupos y creemos nueva columna con el identificador:
+
+```{r}
+set.seed(123)
+pam.resultado=pam(g.dist,4,cluster.only = F)
+
+#nueva columna
+dataClus$clustPT=pam.resultado$cluster
+```
+
+
+### 3. Explorar Resultados
+
+Aquí corresponde saber las caracteristicas de los alumnos en cada cluster. Veamos el resultado **preliminar** al aplicar **aggregate** con la función **each** (esta última está en la biblioteca *plyr*):
+
+```{r}
+library(plyr) # para funcion "each"..
+
+# nota el uso de as.matrix con cbind:
+aggregate(cbind(RDG,MATH,CIV)~ clustPT, data=dataClus,mean)
+```
+¿En este caso hay que recodificar la etiqueta del cluster¿
+
+```{r}
+# adaptar
+dataClus$clustPT=dplyr::recode(dataClus$clustPT, `1` = 4, `2`=2,`3`=1,`4`=3)
+```
+
+
+<a id='beginning'></a>
+
+# Estrategia Jerarquica
+
+La jerarquización busca clusterizar por etapas, hasta que todas las posibilidades de clusterizacion sean visible. Este enfoque tiene dos familias de algoritmos:
+
+* Aglomerativos
+* Divisivos
+
+
+<a id='agg'></a>
+
+## <font color="red">Estrategia Aglomerativa</font>
+
+
+En esta estrategia se parte por considerar cada caso (fila) como un cluster, para de ahi ir creando miniclusters hasta que todos los casos sean un solo cluster. El proceso va mostrando que tanto _esfuerzo_ toma juntar los elementos cluster tras cluster.
+
+Pasos:
+
+Como ya tenemos distancias entre casos, seguimos:
+
+### 1. Decidir _linkages_
+
+Esta es la distancia entre los elementos, tenemos que decidir como se irá calculando la distancia entre los clusters que se van formando (ya no son casos individuales). Los tres mas simples metodos:
+
+* Linkage tipo <a href="https://www.youtube.com/embed/RdT7bhm1M3E" target="_blank">SINGLE</a>.
+
+* Linkage tipo <a href="https://www.youtube.com/embed/Cy3ci0Vqs3Y" target="_blank">COMPLETE</a>.
+
+* Linkage tipo <a href="https://www.youtube.com/embed/T1ObCUpjq3o" target="_blank">AVERAGE</a>
+
+
+Otro metodo adicional, y muy eficiente, es el de **Ward**. Al final, lo que necesitamos saber cual de ellos nos entregará una mejor propuesta de clusters. Usemos este para nuestro caso.
+
+
+### 2. Calcular clusters
+
+La función **hcut** es la que usaremos para el método jerarquico, y el algoritmo aglomerativo se emplea usando **agnes**. El linkage será **ward** (aquí _ward.D_):
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+library(factoextra)
+
+res.agnes<- hcut(g.dist, k = 4,hc_func='agnes',hc_method = "ward.D")
+
+dataClus$clustAG=res.agnes$cluster
+
+```
+
+### 3. Explorar Resultados
+
+
+```{r}
+library(plyr) # para funcion "each"..
+
+# nota el uso de as.matrix con cbind:
+aggregate(cbind(RDG,MATH,CIV)~ clustAG, data=dataClus,mean)
+```
+¿Hay que recodificar la etiqueta del cluster?:
+
+```{r}
+# Adaptar!!
+dataClus$clustAG=dplyr::recode(dataClus$clustAG, `1` = 4, `2`=3,`3`=2,`4`=1)
+```
+
+### 4. Visualizar
+
+El **dendograma** nos muestra el proceso de conglomeración:
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+# Visualize
+fviz_dend(res.agnes, cex = 0.7, horiz = T)
+```
+
+El eje 'Height' nos muestra el "costo" de conglomerar.
+
+
+____
+
+## Comparando
+
+Veamos qué tanto se parece a la clasificación jerarquica a la de partición:
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+# verificar recodificacion
+table(dataClus$clustPT,dataClus$clustAG,dnn = c('Particion','Aglomeracion'))
+```
+
+__________
+
+
+
+## <font color="red">Estrategia Divisiva</font>
+
+
+Esta estrategia comienza con todos los casos como un gran cluster; para de ahi dividir en clusters más pequeños. Comparando con el proceso anterior, el paso 1 no es necesario repetirlo,  por lo que vamos directo al paso 2:
+
+### 2. Calcular clusters
+
+
+La función **hcut** es la que usaremos para el método jerarquico, y el algoritmo divisivo se emplea usando **diana**:
+
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+res.diana <- hcut(g.dist, k = 4,hc_func='diana')
+dataClus$clustDIV=res.diana$cluster
+```
+
+
+### 3. Explorar Resultados
+
+
+```{r}
+library(plyr) # para funcion "each"..
+
+# nota el uso de as.matrix con cbind:
+aggregate(cbind(RDG,MATH,CIV)~ clustDIV, data=dataClus,mean)
+```
+¿Hay que recodificar la etiqueta del cluster?
+
+```{r}
+# adaptar de ser necesario!!!
+dataClus$clustDIV=dplyr::recode(dataClus$clustDIV, `1` = 4, `2`=2,`3`=1,`4`=3)
+```
+
+### 4. Visualizar
+
+El **dendograma** nos muestra el proceso de conglomeración:
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+# Visualize
+fviz_dend(res.diana, cex = 0.7, horiz = T)
+```
+
+El eje 'Height' nos muestra el "costo" de conglomerar.
+
+
+____
+
+## Comparando
+
+Veamos qué tanto se parece ambas la clasificaciones jerárquicas:
+
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
+# verificar recodificacion
+table(dataClus$clustDIV,dataClus$clustAG,dnn = c('Division','Aglomeracion'))
+```
+
+
+
+Nota que en estas técnicas (partición y jerarquica) todo elemento termina siendo parte de un cluster.
+
+_____
+
+
+# Estrategia Basada en Densidad
+
+La estrategia basada en densidad sigue una estrategia muy sencilla: juntar a los casos cuya cercanía entre sí los diferencia de otros. 
+
+El algoritmo **dbscan** requiere dos parametros:
+
+1. La distancia _epsilon_ a usar para clusterizar los casos.
+2. La cantidad _k_ minima de puntos para formar un cluster. El valor _k_ que se usará es al menos la cantidad de dimensiones (en el caso reciente  usaremos k=3). 
+
+#### Mapa de casos
+
+Sin embargo, el principal problema es que necesitamos un **mapa de posiciones** para todos los casos. Eso requiere una técnica que _proyecte_ las dimensiones originales en un plano _bidimensional_. Para ello usaremos la técnica llamada **escalamiento multidimensional**:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+proyeccion = cmdscale(g.dist, k=2,add = T) # k is the number of dim
+```
+
+Habiendo calculado la proyeccción, recuperemos las coordenadas del mapa del mundo basado en nuestras dimensiones nuevas:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# data frame prep:
+dataClus$dim1 <- proyeccion$points[,1]
+dataClus$dim2 <- proyeccion$points[,2]
+```
+
+Aquí puedes ver el mapa:
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+base= ggplot(dataClus,aes(x=dim1, y=dim2,label=row.names(dataClus))) 
+base + geom_text(size=2)
+
+```
+
+Coloreemos el mapa anterior segun el cluster al que corresponden. 
+
+Procedeamos a gráficar:
+
+* PAM
+
+```{r, warning=FALSE, message=FALSE}
+
+base= ggplot(dataClus,aes(x=dim1, y=dim2)) +  coord_fixed()
+base + geom_point(size=2, aes(color=as.factor(clustPT)))  + labs(title = "PAM") 
+```
+
+* AGNES
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+base + geom_point(size=2, aes(color=as.factor(clustAG))) + labs(title = "AGNES")
+```
+
+* DIANA
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+
+base + geom_point(size=2, aes(color=as.factor(clustDIV))) + labs(title = "DIANA")
+```
+
+
+Ahora **calculemos** usando **dbscan**:
+
+
+1. Nuevas distancias: Las posiciones son la información para dbscan.
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+# euclidea!!
+g.dist.cmd = daisy(dataClus[,c('dim1','dim2')], metric = 'euclidean')
+```
+
+2. Calculo de epsilon
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+library(dbscan)
+kNNdistplot(g.dist.cmd, k=3)
+```
+
+3. Obteniendo clusters
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+library(fpc)
+db.cmd = fpc::dbscan(g.dist.cmd, eps=0.11, MinPts=10,method = 'dist')
+```
+
+De lo anterior podemos saber:
+```{r}
+db.cmd
+```
+
+* Qué se han obtenido 2 clusters.
+* Que hay 15 elementos que no se pudieron clusterizar.
+
+
+Pongamos esos valores en otra columna:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+dataClus$dbCMD=as.factor(db.cmd$cluster)
+```
+
+4. Graficando
+
+Aquí sin texto:
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+library(ggrepel)
+base= ggplot(dataClus[dataClus$dbCMD!=0,],aes(x=dim1, y=dim2)) + coord_fixed()
+
+dbplot= base + geom_point(aes(color=dbCMD)) 
+
+dbplot + geom_point(data=dataClus[dataClus$dbCMD==0,],
+                    shape=0) 
+```
+
+
+Nota que en esta técnica hay casos que no serán clusterizados.
+
+
