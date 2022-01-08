@@ -1,0 +1,447 @@
+---
+title: "Ejemplo_Fake2"
+output:
+  html_document:
+    df_print: paged
+---
+
+# 
+
+## Presentado por: Alumno X, miembro del grupo: ABC.
+
+
+# Presentación
+
+En este post mostraré qué está afectando el desempeño en la educación cívica en el Perú, a nivel de sus provincias; según datos del 2017. Así hemos partido por proponer que la educación cívica es afectada por el nivel de habilidades escolares, por la relevancia estratégica de la provincia, y por su estabilidad psicológica de los alumnos. 
+
+El concepto de habilidades escolares está basado en el trabajo de XXXX (2019), y el concepto de relevancia estratégica de la provincia se basa en el trabajo de YYYY(2001). Para las habilidades se ha organizado las notas promedio de los egresados de la secundaria en lectura y escritura, matemáticas y ciencia, ambos obtenidos del MINEDU (su portal CCCC). Para la relevancia estratégica de la provincia se ha considerado si ésta es provincia de frontera o no, si se ubica en la costa, y si ésta es capital de la región o no, información disponible en el INEI. Finalmente, para la estabilidad psicológica nos hemos basado en ZZZZ(2019) y utilizamos los resultados de los tests de locus de control, autoconcepto y motivación.
+
+Los datos están organizados así:
+
+<iframe iframe width="1000" height="400"
+src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQLNWEPcKqxX99PZi8rzvBLM9r0pI_z8O7tFSrbbps0MNF3F66sE90F6d9wNEnmxTZXi5zBQLy51prn/pubhtml?"></iframe>
+
+En esta trabajo se ha encontrado que....
+
+
+# Situación Regional
+
+Veamos la situación regional desde el comportamiento de las variables independientes, utilizando análisis de clusters, siguiendo la técnica jerárquica.
+
+El primer paso es preparar los datos para el análisis cluster.
+
+```{r}
+rm(list = ls())
+# carga de datos
+link='https://docs.google.com/spreadsheets/d/e/2PACX-1vQLNWEPcKqxX99PZi8rzvBLM9r0pI_z8O7tFSrbbps0MNF3F66sE90F6d9wNEnmxTZXi5zBQLy51prn/pub?gid=0&single=true&output=csv'
+LosDatos=read.csv(link)
+
+# variables a selecionar
+varsHabi=c("LEC","ESC","MAT","CIE")
+varsRelev=c("capital_depa","es_frontera","costa")
+varsPsi=c("LOCUS","CONCPT","MOT")
+
+# cambiar texto a numero
+a_0_1=function(x){ifelse(x=='no',0,1)}
+LosDatos[,varsRelev]=lapply(LosDatos[,varsRelev],a_0_1)
+```
+
+Revisemos los rangos de la data numerica:
+
+```{r}
+summary(LosDatos[,c(varsHabi,varsPsi)])
+```
+La data de "varsHabi" debe ser estandarizada como "varsPsi":
+```{r}
+LosDatos[,c(varsHabi)]=scale(LosDatos[,c(varsHabi)])
+```
+
+
+
+
+
+
+Luego obtendremos los tres clusters sugeridos usando la técnica jerarquica aglomerativa (ver anexo 1):
+
+
+```{r}
+# subset para clusterizar
+paraCluster=LosDatos[,c(varsHabi,varsRelev,varsPsi)]
+
+
+# cambio de nombre de fila
+row.names(paraCluster)=LosDatos$PROVINCIA_2
+```
+
+
+```{r, warning=FALSE}
+library(cluster)
+library(factoextra)
+
+set.seed(123)
+g.dist = daisy(paraCluster, metric="gower")
+res.agnes <- hcut(g.dist, k = 3,hc_func='agnes')
+paraCluster$agnes=res.agnes$cluster
+```
+
+Para cada cluster, este es el comportamiento de las variables numericas:
+```{r}
+aggregate(data=paraCluster[,-c(5:7)],.~agnes,FUN=mean)
+```
+
+Podemos recodificar estas variables:
+
+```{r}
+paraCluster$agnes=dplyr::recode(paraCluster$agnes, `1` = 3, `2`=1,`3`=2)
+paraCluster$agnes=as.ordered(paraCluster$agnes)
+```
+
+El **dendograma** nos muestra el proceso de conglomeración:
+
+```{r, warning=FALSE, message=FALSE}
+# Visualize
+fviz_dend(res.agnes, cex = 0.4, horiz = T)
+```
+
+Una primera mirada a las provincias del Perú sería:
+
+```{r}
+library(sf)
+linkMapa='https://github.com/PoliticayGobiernoPUCP/data/raw/master/PROVINCIAS_peru.json'
+mapaProv=read_sf(linkMapa)
+
+paraCluster$PROVINCIA=row.names(paraCluster)
+mapaProv=merge(mapaProv,paraCluster, by="PROVINCIA")
+
+```
+```{r}
+library(ggplot2)
+
+base= ggplot(data=mapaProv) + theme_void()
+base + geom_sf(aes(fill=agnes), color=NA)
+```
+
+# Preparación de latentes
+
+Segun nuestro marco teórico tenemos tres latentes: habilidades escolares, relevancia, y estabilidad psico. En el Anexo 2 decidimos tratar sólo con una latente. 
+
+
+```{r}
+model <- ' habilidad  =~ LEC + ESC + MAT + CIE
+           estabilidad =~ LOCUS + CONCPT + MOT'
+```
+
+
+
+Ahora vemos qué arroja el modelo:
+
+```{r}
+
+#sigamos
+library(lavaan)
+cfa_fit <- cfa(model, data=LosDatos, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Preparo los tests:
+```{r}
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+allFitCFA=as.list(fitMeasures(cfa_fit))
+```
+
+Veamos resultados:
+
+* Si cada indicador tiene una buena conexión con su latente (ver p valor):
+```{r, echo=TRUE}
+allParamCFA[allParamCFA$op=="=~",c("lhs","rhs","pvalue","std.all")]
+
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+* El ChiSquare es NO significativo? (p_value debe ser mayor a 0.05 para que sea bueno)
+
+```{r}
+
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=TRUE}
+allFitCFA$tli # > 0.90
+```
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=TRUE}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] 
+```
+Cuales son los scores:
+```{r}
+lavPredict(cfa_fit)
+```
+
+
+```{r}
+
+allScores=as.data.frame(lavPredict(cfa_fit))
+library(BBmisc)
+LosDatos$habilidad=normalize(allScores$habilidad,
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 100))
+LosDatos$estabilidad=normalize(allScores$estabilidad,
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 100))
+
+```
+
+
+La variable latente estratégica la calcularemos creando un indicador sumativo:
+
+```{r}
+LosDatos$relevancia=apply(LosDatos[,varsRelev],1,sum)
+LosDatos$relevancia=as.ordered(LosDatos$relevancia)
+```
+
+# Regresión y prueba de hipotesis
+
+
+
+```{r}
+hipotesis=formula(CIV ~ habilidad + relevancia + estabilidad + pob)
+
+resultado=lm(hipotesis,data = LosDatos)
+summary(resultado)
+```
+El resultado nos muestra que la habilidad escolar cuanti-cuali ..... Por otro lado, los atributos estratégicos.... Finalmente, la estabilidad psicológica....
+
+# CONCLUSIONES
+
+En este trabajo se plantearon las siguientes hipotesis:
+
+1.-
+
+2.-
+
+3.- 
+
+La primera hipotesis se cumplió/rechazo. Esto significaría que XXXXXXXXX. En futuras investigaciones sería interesante plantear YYYYYY.
+
+.....
+
+
+# ANEXOS
+
+
+
+## Anexo 1: Exploración de clusters:
+
+La data para cluster:
+```{r}
+paraCluster=LosDatos[,c(varsHabi,varsRelev,varsPsi)]
+```
+
+1. Saber si se transformará las variables numéricas:
+
+- Sin modificación:
+```{r}
+boxplot(paraCluster[,c(varsHabi,varsPsi)],horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Tipificado:
+
+
+```{r}
+boxplot(scale(paraCluster[,c(varsHabi,varsPsi)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+- Suavizado logarítmicamente:
+
+Usemos el anterior aqui:
+```{r}
+boxplot(log(paraCluster[,c(varsHabi,varsPsi)]),horizontal=T,las=2,cex.axis=0.3)
+```
+
+2. Saber cúanto clusters pedir
+
+```{r}
+library(cluster)
+set.seed(123)
+g.dist = daisy(paraCluster[,], metric="gower")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## para PAM
+set.seed(123)
+library(factoextra)
+fviz_nbclust(paraCluster, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+set.seed(123)
+fviz_nbclust(paraCluster, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+set.seed(123)
+fviz_nbclust(paraCluster, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+```{r}
+set.seed(123)
+SUGERIDOS=3
+res.pam=pam(g.dist,k = SUGERIDOS,cluster.only = F)
+res.agnes <- hcut(g.dist, k = SUGERIDOS,hc_func='agnes')
+res.diana <- hcut(g.dist, k = SUGERIDOS,hc_func='diana')
+
+```
+
+* Evaluemos el resultado usando el coeficiente de *silueta*:
+
+* Un caso se ha clusterizado bien si tiene valor positivo
+* Un caso es dificilmente clusterizable si es muy cercano a cero
+* Un caso está mal clusterizado si es negativo.
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.diana)
+```
+
+## Anexo 2: Exploración de latentes:
+
+1. Calculando matriz de correlación:
+
+```{r}
+# subset para factorial
+paraLat=LosDatos[,c(varsHabi,varsRelev,varsPsi)]
+
+# esta es:
+library(polycor)
+corMatrix=polycor::hetcor(paraLat)$correlations
+```
+
+2. Explorar correlaciones:
+
+* Sin evaluar significancia:
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+
+
+Si puedes ver bloques correlacionados, hay esperanza de un buen analisis factorial.
+
+
+3. Verificar si datos permiten factorizar:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(psych)
+psych::KMO(corMatrix) 
+```
+
+4. Verificar si la matriz de correlaciones es adecuada
+
+Aqui hay dos pruebas:
+
+* Hnula: La matriz de correlacion es una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix)
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+cortest.bartlett(corMatrix,n=nrow(paraLat))$p.value>0.05
+```
+
+* Hnula: La matriz de correlacion es una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html).
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+5. Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.parallel(paraLat,fm = 'ML', fa = 'fa',correct = T)
+```
+
+Se sugiere 2; pero esperabamos 3. Tratemos 3.
+
+
+6. Redimensionar a numero menor de factores
+
+* Resultado inicial:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(GPArotation)
+resfa <- fa(paraLat,
+            nfactors = 3,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+
+* Resultado mejorado (solo apropiado si hay más de un factor):
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+print(resfa$loadings,cutoff = 0.15)
+```
+
+* Resultado visual:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.diagram(resfa)
+```
+Reintentemos, con menos columnas:
+```{r}
+resfa <- fa(paraLat[,c(varsHabi,varsPsi)],
+            nfactors = 2,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+Nuevo Resultado visual:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.diagram(resfa)
+```
+7. Evaluando Resultado obtenido:
+
+* ¿Qué variables aportaron mas a los factores?
+```{r}
+sort(resfa$communality)
+```
+
+* ¿Qué variables contribuyen a mas de un factor?
+
+```{r}
+sort(resfa$complexity)
+```
+
+La exploración no da soporte a tres latentes. Para no afectar la teoría, sólo usaremos dos, pero "MOT" y "LOC" no están cargando mucho en la latente.
+
+## Anexo 3.
+
+Se han usado las siguientes librerias, indicando la razón de su uso:
+
+a. ggplot: para XXXX.
+b. cluster: para YYY.
+c....
+

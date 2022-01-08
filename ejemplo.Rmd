@@ -1,6 +1,8 @@
 ---
 title: "Ejemplo_Fake"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # 
@@ -31,17 +33,20 @@ link='https://docs.google.com/spreadsheets/d/e/2PACX-1vQLNWEPcKqxX99PZi8rzvBLM9r
 LosDatos=read.csv(link)
 
 # variables a selecionar
-varsIndep=c("LEC","ESC","MAT","CIE","capital_depa","es_frontera","costa")
-
-# subset para clusterizar
-paraCluster=LosDatos[,varsIndep]
+varsHabi=c("LEC","ESC","MAT","CIE")
+varsRelev=c("capital_depa","es_frontera","costa")
 
 # cambiar texto a numero
 a_0_1=function(x){ifelse(x=='no',0,1)}
-paraCluster[,5:7]=lapply(paraCluster[,5:7],a_0_1)
+LosDatos[,varsRelev]=lapply(LosDatos[,varsRelev],a_0_1)
+
+
+# subset para clusterizar
+paraCluster=LosDatos[,c(varsHabi,varsRelev)]
+
 
 # cambio de nombre de fila
-row.names(paraCluster)=LosDatos$PROVINCIA
+row.names(paraCluster)=LosDatos$PROVINCIA_2
 
 ```
 
@@ -49,6 +54,7 @@ Luego obtendremos los cuatro clusters sugeridos usando la técnica jerarquica di
 
 ```{r, warning=FALSE}
 library(cluster)
+library(factoextra)
 
 set.seed(123)
 g.dist = daisy(paraCluster, metric="gower")
@@ -65,7 +71,138 @@ Podemos recodificar estas variables:
 
 ```{r}
 paraCluster$diana=dplyr::recode(paraCluster$diana, `1` = 3, `2`=2,`3`=1,`4`=4)
+paraCluster$diana=as.ordered(paraCluster$diana)
 ```
+
+El **dendograma** nos muestra el proceso de conglomeración:
+
+```{r, warning=FALSE, message=FALSE}
+# Visualize
+fviz_dend(res.diana, cex = 0.4, horiz = T)
+```
+
+Una primera mirada a las provincias del Perú sería:
+
+```{r}
+library(sf)
+linkMapa='https://github.com/PoliticayGobiernoPUCP/data/raw/master/PROVINCIAS_peru.json'
+mapaProv=read_sf(linkMapa)
+
+paraCluster$PROVINCIA=row.names(paraCluster)
+mapaProv=merge(mapaProv,paraCluster, by="PROVINCIA")
+
+```
+```{r}
+library(ggplot2)
+
+base= ggplot(data=mapaProv) + theme_void()
+base + geom_sf(aes(fill=diana), color=NA)
+```
+
+# Preparación de latentes
+
+Segun nuestro marco teórico tenemos tres latentes: habilidades cuali, habilidades cuanti y relevancia. En el Anexo 2 decidimos tratar sólo con una latente. 
+
+
+```{r}
+model <- ' habilidad  =~ LEC + ESC + MAT + CIE'
+```
+
+
+
+Ahora vemos qué arroja el modelo:
+
+```{r}
+
+library(lavaan)
+cfa_fit <- cfa(model, data=LosDatos, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Preparo los tests:
+```{r}
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+allFitCFA=as.list(fitMeasures(cfa_fit))
+```
+
+Veamos resultados:
+
+* Si cada indicador tiene una buena conexión con su latente (ver p valor):
+```{r, echo=TRUE}
+allParamCFA[allParamCFA$op=="=~",]
+
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+* El ChiSquare es NO significativo? (p_value debe ser mayor a 0.05 para que sea bueno)
+
+```{r}
+
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+
+* El Índice Tucker Lewi es mayor a 0.9?
+
+```{r,echo=TRUE}
+allFitCFA$tli # > 0.90
+```
+* La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r,echo=TRUE}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] 
+```
+Calculando.
+
+```{r}
+library(BBmisc)
+scorescfa=normalize(lavPredict(cfa_fit),
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 10))
+
+```
+
+De ahi que:
+
+```{r}
+LosDatos$habilidad=scorescfa
+```
+
+La variable latente estratégica la calcularemos creando un indicador sumativo:
+
+```{r}
+LosDatos$relevancia=apply(LosDatos[,varsRelev],1,sum)
+LosDatos$relevancia=as.ordered(LosDatos$relevancia)
+```
+
+# Regresión y prueba de hipotesis
+
+
+
+```{r}
+hipotesis=formula(CIV ~ habilidad + relevancia + pob)
+
+resultado=lm(hipotesis,data = LosDatos)
+summary(resultado)
+```
+El resultado nos muestra que la habilidad escolar cuanti-cuali beneficia el nivel educativo en educación civica, como se ve, la variable habilidad es significativa al 0.001, y se nos indica que una provincia eleva su desempeño en 2.80 puntos por cada aumento en un punto en la variable habilidad cuanti-cuali. Por otro lado, mientras una provincia tenga más atributos estratégicos, estos perjudican el nivel educativo en educación civica; esto lo afirmo con una significancia al 0.01, notándose que una provincia reduce su desempeño en 9 puntos por cada aumento en un punto en la variable relevancia.
+
+# CONCLUSIONES
+
+En este trabajo se plantearon las siguientes hipotesis:
+
+1.-
+
+2.-
+
+La primera hipotesis se cumplió/rechazo. Esto significaría que XXXXXXXXX. En futuras investigaciones sería interesante plantear YYYYYY.
+La segunda hipotesis se cumplió/rechazo. Esto significaría que XXXXXXXXX. En futuras investigaciones sería interesante plantear YYYYYY.
+
+
+# ANEXOS
 
 
 
@@ -75,24 +212,24 @@ paraCluster$diana=dplyr::recode(paraCluster$diana, `1` = 3, `2`=2,`3`=1,`4`=4)
 
 - Sin modificación:
 ```{r}
-boxplot(paraCluster[,c(1,2,3)],horizontal=T,las=2,cex.axis=0.3)
+boxplot(paraCluster[,varsHabi],horizontal=T,las=2,cex.axis=0.3)
 ```
 
 - Tipificado:
 ```{r}
-boxplot(scale(paraCluster[,c(1,2,3)]),horizontal=T,las=2,cex.axis=0.3)
+boxplot(scale(paraCluster[,varsHabi]),horizontal=T,las=2,cex.axis=0.3)
 ```
 
 - Suavizado logarítmicamente:
 ```{r}
-boxplot(log(paraCluster[,c(1,2,3)]),horizontal=T,las=2,cex.axis=0.3)
+boxplot(log(paraCluster[,varsHabi]),horizontal=T,las=2,cex.axis=0.3)
 ```
 
 2. Saber cúanto clusters pedir
 
 ```{r}
 library(cluster)
-
+paraCluster=LosDatos[,c(varsHabi,varsRelev)]
 set.seed(123)
 g.dist = daisy(paraCluster, metric="gower")
 ```
@@ -145,3 +282,111 @@ fviz_silhouette(res.agnes)
 ```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
 fviz_silhouette(res.diana)
 ```
+
+## Anexo 2: Exploración de latentes:
+
+1. Calculando matriz de correlación:
+
+```{r}
+
+paraLat=paraCluster[,-c(8,9)]
+# esta es:
+library(polycor)
+corMatrix=polycor::hetcor(paraLat)$correlations
+```
+
+2. Explorar correlaciones:
+
+* Sin evaluar significancia:
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+
+
+Si puedes ver bloques correlacionados, hay esperanza de un buen analisis factorial.
+
+
+3. Verificar si datos permiten factorizar:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(psych)
+psych::KMO(corMatrix) 
+```
+
+4. Verificar si la matriz de correlaciones es adecuada
+
+Aqui hay dos pruebas:
+
+* Hnula: La matriz de correlacion es una [matriz identidad](https://en.wikipedia.org/wiki/Identity_matrix)
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+cortest.bartlett(corMatrix,n=nrow(paraLat))$p.value>0.05
+```
+
+* Hnula: La matriz de correlacion es una [matriz singular](http://mathworld.wolfram.com/SingularMatrix.html).
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+5. Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.parallel(paraLat,fm = 'ML', fa = 'fa',correct = T)
+```
+
+Se sugiere 1; pero esperabamos 2. Tratemos 2.
+
+
+6. Redimensionar a numero menor de factores
+
+* Resultado inicial:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+library(GPArotation)
+resfa <- fa(paraLat,
+            nfactors = 2,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+
+* Resultado mejorado (solo apropiado si hay más de un factor):
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+print(resfa$loadings,cutoff = 0.15)
+```
+
+* Resultado visual:
+
+```{r, echo=TRUE, eval=TRUE,warning=FALSE, message=FALSE}
+fa.diagram(resfa)
+```
+
+7. Evaluando Resultado obtenido:
+
+* ¿Qué variables aportaron mas a los factores?
+```{r}
+sort(resfa$communality)
+```
+
+* ¿Qué variables contribuyen a mas de un factor?
+
+```{r}
+sort(resfa$complexity)
+```
+
+De ahí que sólo se podría pedir una latente.
+
+## Anexo 3.
+
+Se han usado las siguientes librerias, indicando la razón de su uso:
+
+a. ggplot: para XXXX.
+b. cluster: para YYY.
+
