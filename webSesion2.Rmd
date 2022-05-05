@@ -29,18 +29,44 @@ _____
 
 ## Regresión Lineal
 
-La regresión es una técnica donde hay que definir una variable dependiente y una o más independientes. Las independientes pueden tener rol predictor, dependiendo del diseño de investigación, pero cumple siempre un rol explicativo; así, la regresión sí quiere informar cuánto una variable (_independiente_) puede explicar la variación de otra (_dependiente_), de ahí que es una técnica para probar hipótesis direccionales o asimétricas (las correlaciones tiene hipótesis no direccionales o simétricas).
+La regresión es una técnica donde hay que definir una variable dependiente y una o más independientes. Las independientes pueden tener rol predictor, dependiendo del diseño de investigación, pero cumple siempre un rol explicativo; así, la regresión  quiere informar cuánto una variable (_independiente_) puede explicar la variación de otra (_dependiente_), de ahí que es una técnica para probar hipótesis direccionales o asimétricas (las correlaciones tiene hipótesis no direccionales o simétricas).
 
 La regresión lineal busca proponer un modelo, es decir una ecuación, que recoja como una variable explicaría a otra. La regresión lineal es también conocida como la **Regresión Gaussiana**, la cual es aplicable sólo cuando la variable dependiente (la **Y**) es _numérica_, _contínua_, y _no acotada_.
 
+## Caso de Estudio
+
+Profesores de la [Universidad de los Andes](https://dialnet.unirioja.es/servlet/articulo?codigo=2923538) decidieron  estudiar cómo la distribución de fondos públicos fue afectada por factores políticos durante el primer periodo del Presidente Uribe (2002-2006). Las hipótesis que se plantean son:
+
+* H1: la asignación presupuestal en infraestructura vial en Colombia responde a los criterios técnicos y económicos determinados en el Plan Nacional de Desarrollo y otros documentos de carácter técnico elaborados por el gobierno.
+
+* H2: la asignación presupuestal en infraestructura vial en Colombia responde a negociaciones bilaterales entre
+el ejecutivo y el legislativo basadas en necesidades políticas y electorales de corto plazo.
+
+* H3: la asignación presupuestal en infraestructura vial en Colombia responde al esfuerzo del gobierno por fortalecer su base social de apoyo local a través de los Consejos Comunales de Gobierno.
+
+Para ello, organizaron estos datos:
+
+<iframe width="700" height="400" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSRpCC8gKIxMxpK0wjgLcl-GQWdw6sAeB16Sixkq6kZXeTfMS8_n70twbEbQ2tMcGp8tm-6x8qf8ieo/pubhtml?"></iframe>
+
+Luego de leer el artículo:
+
+1. ¿Cómo decidieron los autores operacionalizar las variables independientes y la dependiente?
+
+2. ¿Qué función cumplen las  variables de control?
+
+3. ¿Para que les sirvió la regresión? 
+
+4. ¿Hicieron una regresión por cada hipotesis?
+
+5. ¿Se probaron todas las hipótesis?
+
+
+Pasemos a usar los datos en R:
+
+## Preparación de los datos
+
 Veamos los datos del artículo  [¿Pavimentando Con Votos
-](http://www.scielo.org.co/scielo.php?script=sci_arttext&pid=S0121-56122008000200002):
-
-
-<iframe width="1000" height="800" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSRpCC8gKIxMxpK0wjgLcl-GQWdw6sAeB16Sixkq6kZXeTfMS8_n70twbEbQ2tMcGp8tm-6x8qf8ieo/pubhtml?"></iframe>
-
-
-Los datos tienen estas características una vez cargados en R:
+](http://www.scielo.org.co/scielo.php?script=sci_arttext&pid=S0121-56122008000200002). Los datos tienen estas características una vez cargados en R:
 
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
@@ -52,8 +78,7 @@ str(pavi)
 Nótese que debemos tener claro cuáles son categóricas:
 ```{r}
 seleccion=c("consejocomunal","ejecucion","uribista","priorizado")
-#pavi[,seleccion]=lapply(pavi[,seleccion],as.factor)
-pavi[,seleccion]=rio::factorize(pavi[,seleccion])
+pavi[,seleccion]=lapply(pavi[,seleccion],as.factor)
 ```
 
 Veamos una hipotesis: '_el Beneficio recibido_' en un municipio ha sido afectado por  '_el porcentaje de votos recibidos por los candidatos de la oposición a Uribe a la camara de representantes_', controlando por '_tamaño de población_', la cual se representa en R así:

@@ -24,6 +24,40 @@ ____
 <center> <header><h2>Regresión Lineal Multivariada (I)</h2>  </header></center>
 ____
 
+## El _Pipeline_ del Analísta Político
+
+De manera abstracta podemos ver que Los analistas existen para brindar __explicaciones__ y __recomendaciones__ sobre algún asunto de interés. El _decisor_ elije el curso de acción sabiendo que no puede esperar del analista información completa. El _gestor_ se encarga de implementar  las decisiones; esa implementación traerá nueva información y el analista vuelve a su trabajo.
+
+Para acabar este curso sintiéndote que vas en camino a ser analista político, te recomiendo seguir  estos pasos:
+
+1. Identificar algún patrón (no aleatorio)  en la complejidad del mundo, que afectan  los objetivos de las organizaciones: el problema. La identificación del problema depende de cómo entiendes al mundo, por lo que debes haber leído diversas teorías antes de aventurarte a identificar. 
+
+2. Estructurar lo identificado (el problema) en  preguntas de investigación.
+
+3. Revisar la literatura para saber qué _respuestas_ hayan dado otros investigadores al problema planteado.
+
+4. Plantear explicaciones al problema: hipótesis.
+
+5. Organizar una estrategia para probar, o invalidar, las hipótesis.
+
+6. Aplicar la estrategia, entender y validar los resultados. Asegurar la replicabilidad de la estrategia. 
+
+7. Elaborar síntesis de lo actuado; proponer explicaciones a lo encontrado; y enviar recomendaciones.
+
+Hay muchas opciones para la _estrategia_ señalada en el punto 5. La elección de las mismas dependerá de la preparación del analista. En este curso, te daremos conocimientos para que no desestimes **el camino basado en datos y/o evidencias empíricas**. De ahí que parte de tu proyecto para este curso está basado en desarrollar los puntos anteriores.
+
+  - Con tu hipótesis (punto **4**), debes organizar un archivo de datos (punto **5**), donde, al menos, una de las columnas sea la variable que representa el problema observado (*la dependiente*), por ejemplo: muertos por Covid, resultados de exámenes escolares, etc.; y las otras  (las _independientes_) sean variables sugeridas en la revisión de la literatura como posibles influencias para el comportamiento de la variable dependiente. Refresca estos conceptos con esta [lectura](http://cienciapoliticauned1.blogspot.com/). 
+  - Con esos datos, prueba tu hipótesis con  un análisis de regresión (punto **6**). Hay varios pasos a seguir, y lo veremos en las primeras sesiones.
+  
+  - Todos deben colaborar con diversos datos, pues luego debes usarlos para análisis de conglomerados y factorial. Aquí necesitan diversas independientes. Éstas pueden ser dos grupos, uno que represente indicadores similares entre sí (vea el [índice de democracia](https://es.wikipedia.org/wiki/%C3%8Dndice_de_democracia)) o disímiles entre sí (vea el [índice de desarrollo humano](https://es.wikipedia.org/wiki/%C3%8Dndice_de_desarrollo_humano)). Esto debe permitirte un mejor análisis de regresión.
+  
+  - Las investigaciones, en general, y las políticas, en particular, deben ser auditables. De ahí que debes organizar todo el trabajo anterior en un repositorio en la “nube”. Saca tu cuenta en [GitHub](https://github.com/), e instala el [cliente](https://desktop.github.com/) en tu computadora a la vez.
+  
+  - RStudio te permitirá publicar tu trabajo final en un formato académico moderno usando _markdown_. Ten este tutorial a la mano todo el tiempo:[https://rmarkdown.rstudio.com/index.html](https://rmarkdown.rstudio.com/index.html). Esto será tu último entregable.
+  
+
+Para mayores detalles, revisa el SILABO presente en Paideia y el campus virtual PUCP.
+
 
 En esta sesión deseo que entiendas por qué es necesario ir más allá de la correlación (_Pearson_, _Spearman_, etc.) o las diferencias de valores centrales (_t test_, _kruska wallis_, etc.). Esta necesidad de ir más allá trae una técnica conocida como la regresión. 
 
@@ -32,9 +66,6 @@ La sesión va en dos partes:
 * [De Correlación a Regresión](#corr)
 * [Regresión Lineal](#rlin)
 
-```{r, echo=FALSE, eval=FALSE}
-#* [Diagnósticos de la Regresión](#diag)
-```
 
 
 
@@ -45,36 +76,51 @@ La sesión va en dos partes:
 ## I. De Correlación a regresión
 
 
-Trabajemos con los datos del archivo en SPSS **hsb.sav**:
+Trabajemos con estos datos:
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
 
 library(rio)
-linkToData='https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/DATA/hsb_ok.xlsx'
-hsb=import(linkToData)
-
+topCloud='https://github.com/PoliticayGobiernoPUCP/'
+courseCloud='estadistica_anapol2/raw/master/DATA/'
+fileCloud='hsb_ok.xlsx'
+hsb=import(paste0(topCloud,courseCloud,fileCloud))
 ```
 
-Antes de correr cualquier análisis estadístico, debes revisar como el tipo de datos que tu archivo trae y :
+Antes de correr cualquier análisis estadístico, debes revisar como el tipo de datos que tu archivo trae es reconocido por el **R**:
 
 ```{r}
 str(hsb)
 ```
 
-Casi todo salió numerico, pero no sabremos qué ajustar si no leemos el manual metodológico o el diccionario de datos o la metadata [disponible](https://education.illinois.edu/docs/default-source/carolyn-anderson/edpsy589/lectures/HSBDATA.pdf).
+Casi todo salió numérico, pero no sabremos qué ajustar si no leemos el manual metodológico o el diccionario de datos o la metadata [disponible](https://education.illinois.edu/docs/default-source/carolyn-anderson/edpsy589/lectures/HSBDATA.pdf).
 
-De ahi que depemos pre procesar:
+De ahi que debemos pre procesar:
 
 ```{r}
-
-# a nominal
 categoricals=c("SEX","RACE","SES","SCTYP","HSP","CAR")
 
-hsb[,categoricals]=factorize(hsb[,categoricals])
+hsb[,categoricals]=lapply(hsb[,categoricals], as.factor)
 
+# nominales
+hsb$SEX=factor(hsb$SEX,
+                levels=c(1,2),
+                labels=c("Male","Female"))
 
+hsb$RACE=factor(hsb$RACE,
+                levels=c(1,2,3,4),
+                labels=c("Hispanic","Asian","Black","White"))
+
+hsb$HSP=factor(hsb$HSP,
+                levels=c(1,2,3),labels=c("General","Academic","Vocational"))
+
+hsb$SCTYP=factor(hsb$SCTYP,
+                levels=c(1,2),
+                labels=c("Public","Private"))
 # a ordinal:
-hsb$SES=ordered(hsb$SES,levels=c("Low","Medium","High" ))
+hsb$SES=ordered(hsb$SES,
+                levels=c(1,2,3),
+                labels=c("Low","Medium","High" ))
 ```
 
 
@@ -83,7 +129,7 @@ hsb$SES=ordered(hsb$SES,levels=c("Low","Medium","High" ))
 Asumamos que nuestra variable de interés es el desempeño en matemáticas; así, nuestra _variable dependiente_ está  representada por la variable _MATH_. 
 
 
-Apartir de ahí, consideremos que nos interesa saber la posible relación que pueda tener la variable que ha medido el desempeño en escritura; así, una variable independiente sería la representada por la variable _WRTG_. Hasta ahora sabemos que como son _dos_ variables de tipo _numérico_ debemos usar una correlación. La gráfica de correlación es esta:
+A partir de ahí, consideremos que nos interesa saber la posible relación que pueda tener la variable que ha medido el desempeño en escritura; así, una variable independiente sería la representada por la variable _WRTG_. Hasta ahora sabemos que como son _dos_ variables de tipo _numérico_ debemos usar una correlación. La gráfica de correlación es esta:
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
 
@@ -131,7 +177,7 @@ base + geom_point(aes(color = SCI))
 
 ```
 
-Calulemos las correlaciones:
+Calculemos las correlaciones:
 
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
@@ -155,8 +201,8 @@ Finalmente, ¿si quisiéramos ver si el sexo tiene algun rol en todo esto? Como 
 
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
-base=ggplot(data=hsb, aes(x=SEX, y=MATH))
-base + geom_boxplot(notch = T)
+base=ggplot(data=hsb, aes(x=as.factor(SEX), y=MATH))
+base + geom_boxplot(notch = T) +  geom_jitter(color="black", size=0.4, alpha=0.9)
 
 ```
 
@@ -243,7 +289,7 @@ base + geom_point(aes(color = SEX))
 * Veamos como representar al sexo en nuestra gráfica entre WRTG, SCI y MATH:
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE}
-base + geom_point(aes(size = SCI, color=SEX,shape=SEX)) + scale_shape_manual(values=c(3, 2))
+base + geom_point(aes(size = SCI, color=SEX)) 
 ```
 
 Otra alternativa puede ser:
@@ -293,7 +339,7 @@ table(hsb$RACE)
 modelo0= formula(MATH ~ WRTG + RACE)
 summary(lm(modelo0,data = hsb))
 ```
-
+O en mejor version con ayuda de _stargazer_:
 
 ```{r, warning=FALSE, message=FALSE, echo=TRUE,results='asis'}
 library(stargazer)
@@ -414,5 +460,3 @@ plot_models(reg1,reg2,reg3,vline.color = "grey",m.labels=c("Modelo 1","Modelo 2"
 Como vemos, el propósito del último gráfico es mostrar que dado que ninguna de las variables (y sus intervalos de confianza) tocan el valor cero (que significa que la variable no tiene efecto en la dependiente).
 
 [al INICIO](#beginning)
-
-<iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfEb9sUZHKZJN9Dhmlhy3qgr0sUc8-UtsirgGmqJjg8QToVdg/viewform?embedded=true" width="640" height="705" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
