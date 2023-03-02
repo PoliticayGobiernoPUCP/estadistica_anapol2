@@ -1,0 +1,247 @@
+---
+title: "Sesión 6"
+---
+<center><img src="https://github.com/PoliticayGobiernoPUCP/estadistica_anapol2/raw/master/PICS/LOGO_PUCP.png" width="500"></center>
+
+<center> <header><h1>ESTADISTICA PARA EL ANALISIS POLITICO II</h1>  </header></center>
+
+* Profesor:  <a href="http://www.pucp.edu.pe/profesor/jose-manuel-magallanes/" target="_blank">Dr. José Manuel Magallanes, Ph.D.</a> <br>
+    - Profesor del Departamento de Ciencias Sociales, Sección de Ciencia Política y Gobierno.
+    - [Oficina 105](https://goo.gl/maps/xuGeG6o9di1i1y5m6) - Edificio CISEPA / ECONOMIA / CCSS
+    - Telefono: (51) 1 - 6262000 anexo 4302
+    - Correo Electrónico: [jmagallanes@pucp.edu.pe](mailto:jmagallanes@pucp.edu.pe)
+    
+
+<a id='beginning'></a>
+
+
+____
+
+<center> <header><h2>Análisis de Conglomerados (II)</h2>  </header></center>
+____
+
+### 1. Volvamos a traer los datos de la anterior sesión:
+
+```{r, message=FALSE}
+# borrando todo:
+rm(list = ls())
+
+### links
+linkEDUgdp="https://www.cia.gov/the-world-factbook/field/education-expenditures/country-comparison"
+linkMILIgdp="https://www.cia.gov/the-world-factbook/field/military-expenditures/country-comparison"
+linkKWHprod="https://www.cia.gov/the-world-factbook/field/electricity-production/country-comparison"
+
+### paths
+EDUpath='//*[@id="index-content-section"]/div/div[2]/div/div/div/div/div/table'
+MILIpath='//*[@id="index-content-section"]/div/div[2]/div/div/div/div/div/table'
+KWHpath = '//*[@id="index-content-section"]/div/div[2]/div/div/div/div/div/table'
+
+### scrapping
+
+library(htmltab)
+edu<- htmltab(doc = linkEDUgdp,
+              which =EDUpath)
+mili<- htmltab(doc = linkMILIgdp,
+              which =MILIpath)
+elec<- htmltab(doc = linkKWHprod,
+              which =KWHpath)
+
+### subsetting
+keep=c(2,3)
+edu=edu[,keep]
+mili=mili[,keep]
+elec=elec[,keep]
+
+### renaming
+names(edu)[2]="edu_gdp"
+names(mili)[2]="mili_gdp"
+
+### merging
+allData=merge(edu,mili)
+allData=merge(allData,elec)
+
+##3 formatting
+library(readr)
+allData[,-1]=lapply(allData[,-1], parse_number)
+
+# subsetting
+
+allData=allData[!allData$Country%in%c("China","United States"),]
+
+```
+
+```{r}
+boxplot(allData[,-1])
+```
+
+```{r}
+library(BBmisc)
+boxplot(BBmisc::normalize(allData[,-1],method='range',range=c(0,1)))
+```
+
+```{r}
+boxplot(BBmisc::normalize(allData[,-1],method='standardize'))
+```
+
+```{r}
+### transforming
+allData[,-1]=BBmisc::normalize(allData[,-1],method='range',range=c(0,1))
+allData=allData[complete.cases(allData),]
+
+####descriptivos:
+summary(allData)
+```
+
+
+Veamos correlaciones:
+
+```{r}
+cor(allData[,-1])
+```
+Cambio de *monotonia*:
+
+
+```{r}
+#allData$edu_gdp=-1*allData$edu_gdp
+```
+
+
+Preparemos la data para la clusterización
+
+```{r}
+dataClus=allData[,-1]
+row.names(dataClus)=allData$Country
+```
+
+
+Calculo de la matriz de distancias:
+
+```{r}
+
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+
+### 2. Proponer cantidad de clusters:
+
+Las siguientes gráficas proponen la cantidad de clusters a solicitar (usando el estadístico _gap_):
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## para PAM
+
+library(factoextra)
+fviz_nbclust(dataClus, pam,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F)
+```
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+## PARA JERARQUICO
+
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+### 3. Evaluemos resultados
+
+Pidamos cuatro grupos:
+
+```{r}
+###pam
+set.seed(123)
+grupos=5
+res.pam=pam(g.dist,k = grupos,cluster.only = F)
+dataClus$pam=res.pam$cluster
+
+###agnes
+res.agnes<- hcut(g.dist, k =grupos,hc_func='agnes',hc_method = "ward.D")
+dataClus$agnes=res.agnes$cluster
+
+### diana
+res.diana <- hcut(g.dist, k = grupos,hc_func='diana')
+dataClus$diana=res.diana$cluster
+```
+
+Ahora veamos a cuál le fue mejor:
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.pam)
+```
+
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.agnes)
+```
+
+```{r, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+fviz_silhouette(res.diana)
+```
+
+Se puede concluir que estos datos fueron mejor clusterizados usando el metodo jerarquico divisivo.
+
+* Encontremos los casos MAL clusterizados (silueta negativa):
+
+```{r, message=FALSE}
+library(magrittr)
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']%>%sort()
+
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']%>%sort()
+
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']%>%sort()
+
+###
+library("qpcR") 
+mal_Clus=as.data.frame(qpcR:::cbind.na(poorPAM, poorAGNES,poorDIANA))
+mal_Clus
+```
+
+* Podemos usar teoría de conjuntos para ver qué los casos mal clusterizados en todos las técnicas:
+
+```{r}
+intersect(poorPAM,poorAGNES)
+```
+
+```{r}
+# en PAM pero NO en Agnes
+setdiff(poorPAM,poorAGNES)
+```
+```{r}
+setdiff(poorAGNES,poorPAM)
+```
+
+### 4. Graficando
+
+Por lo anterior sabemos que usaremos la técnica _diana_. Verifiquemos las etiquetas:
+
+```{r}
+original=aggregate(.~ diana, data=dataClus,mean)
+original[order(original$edu_gdp),]
+```
+
+```{r}
+dataClus$diana=dplyr::recode(dataClus$diana, `3` = 1, `4`=2,`2`=3,`1`=4)
+```
+
+```{r, warning=FALSE, message=FALSE, eval=TRUE}
+#proyectando los casos en dos dimensiones:
+
+proyeccion = cmdscale(g.dist, k=2,add = T) # k es la cantidad de dimensiones
+dataClus$dim1 <- proyeccion$points[,1]
+dataClus$dim2 <- proyeccion$points[,2]
+base= ggplot(dataClus,aes(x=dim1, y=dim2,label=row.names(dataClus))) 
+base + geom_text(size=2, aes(color=as.factor(diana)))  + labs(title = "DIANA") 
+
+```
+
+
+

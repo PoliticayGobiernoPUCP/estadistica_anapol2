@@ -22,15 +22,15 @@ ____
 
 # Estrategia de Partición
 
-Como su nombre lo indica, la estrategia de partición busca partir los casos en grupos. El algoritmo básico establece puntos que deben atraer a los casos, tal que estos se separen. Claro está, que estos puntos atractores van moviendose conforme los grupos se van formando, hasta que al final se ha partido todos los casos. 
+Como su nombre lo indica, la estrategia de partición busca partir los casos en grupos. El algoritmo básico establece puntos que deben atraer a los casos, tal que estos se separen. Claro está, que estos puntos atractores van moviendose conforme los grupos se van formando, hasta que al final se han partido todos los casos. 
 
-Hay diversos algoritmos que buscan una implementación de estos principios básicos. El más conocido es el de **K-medias**, pero para ciencias sociales tiene la desventaja que requiere que todas las variables sean numéricas, no siendo muy eficiente ante categorías. Es decir, como mencionamos en la intro, la técnica de *k-means* no usa distancias entre categóricas, sólo entre numéricas ([la distancia _Euclideana_](https://en.wikipedia.org/wiki/Euclidean_distance)).
+Hay diversos algoritmos que buscan una implementación de estos principios básicos. El más conocido es el de **K-medias**, pero para ciencias sociales tiene la desventaja que requiere que todas las variables sean numéricas, no siendo muy adecuado ante categorías. Es decir,  la técnica de *k-means* no usa distancias entre categóricas, sólo entre numéricas ([la distancia _Euclideana_](https://en.wikipedia.org/wiki/Euclidean_distance)).
 
 La alternativa a las necesidades en ciencias sociales es la técnica de **k-medoides**. Esta técnica trabaja muy bien con las distancias euclideas, pero también con otras distancias como la [**Mahattan**](https://en.wikipedia.org/wiki/Taxicab_geometry) (revisar este [debate](https://datascience.stackexchange.com/questions/20075/when-would-one-use-manhattan-distance-as-opposite-to-euclidean-distance)). En particular, usaremos la [distancia Gower](https://www.linkedin.com/pulse/simplifying-gower-coefficient-vineet-tanna) útil para todos tipo de escalas.
 
 
 
-Traigamos nuevamente los datos desempeños estudiantil:
+Traigamos nuevamente los datos de desempeño estudiantil:
 
 ```{r}
 library(rio)

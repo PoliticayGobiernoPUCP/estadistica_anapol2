@@ -37,7 +37,7 @@ Para esta sesión trabajaremos con la data de estos links:
 library(htmltab)
 
 demoL=c("https://en.wikipedia.org/wiki/Democracy_Index", 
-        '//*[@id="mw-content-text"]/div[1]/table[10]')
+        '//*[@id="mw-content-text"]/div[1]/table[6]/tbody')
 
 demo  = htmltab(doc = demoL[1], which  = demoL[2], encoding = "UTF-8")
 
@@ -53,23 +53,19 @@ names(demo)=trimws(names(demo),whitespace = "[\\h\\v]")
 names(demo)=gsub('\u00AD','',names(demo))
 #capitalizar
 names(demo)=str_to_title(names(demo))
-#espacios por "."
+#espacios por "_"
 names(demo)=names(demo)=gsub('\\s','_',names(demo))
 
 # Eliminemos columnas que no usaremos:
-demo[,c(1,2,11)]=NULL
+demo[,c(1,2,4,6)]=NULL
 
+str(demo)
 # Tipo de variables:
 
 ## En demo:
 # a numerica
-demo[,-c(1,2)]=lapply(demo[,-c(1,2)],as.numeric)
+demo[,-1]=lapply(demo[,-1],as.numeric)
 
-# a ordinal
-regimeLevels=c("Authoritarian","Hybrid regime","Flawed democracy","Full democracy")
-demo$Regime_Type=factor(demo$Regime_Type,
-                   levels=regimeLevels, 
-                   ordered = T)
 # sin perdidos:
 demo=na.omit(demo)
 ```
